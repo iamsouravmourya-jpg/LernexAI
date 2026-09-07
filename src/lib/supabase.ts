@@ -1,30 +1,22 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-// Dynamically resolve environment variables for both Vite client and Node/Vercel runtimes
-const getEnvVar = (key: string): string => {
-  try {
-    if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[key]) {
-      return String(import.meta.env[key]).trim();
-    }
-  } catch {}
-
-  try {
-    if (typeof process !== 'undefined' && process.env && process.env[key]) {
-      return String(process.env[key]).trim();
-    }
-  } catch {}
-
-  return '';
-};
-
-const supabaseUrl = (getEnvVar('VITE_SUPABASE_URL') || getEnvVar('SUPABASE_URL')).trim();
-const supabaseAnonKey = (getEnvVar('VITE_SUPABASE_ANON_KEY') || getEnvVar('SUPABASE_ANON_KEY')).trim();
+/**
+ * Frontend Client-Side Supabase Initialization
+ * 
+ * Rules:
+ * 1. Strictly uses Vite's `import.meta.env.VITE_*` syntax.
+ * 2. Reads `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
+ * 3. Never hardcodes 'example.supabase.co'.
+ * 4. Checks configuration validity so it never crashes the client if variables are absent.
+ */
+const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL || '').trim();
+const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim();
 
 export const isSupabaseConfigured = Boolean(
-  supabaseUrl && 
-  supabaseAnonKey && 
+  supabaseUrl &&
+  supabaseAnonKey &&
   supabaseUrl.startsWith('http') &&
-  !supabaseUrl.includes('placeholder') && 
+  !supabaseUrl.includes('placeholder') &&
   !supabaseUrl.includes('example.supabase.co') &&
   !supabaseAnonKey.includes('placeholder') &&
   supabaseAnonKey.length > 20
@@ -40,11 +32,11 @@ function initSupabase(): SupabaseClient {
         },
       });
     } catch (err) {
-      console.warn('[Supabase Config Error]: Unable to initialize Supabase client:', err);
+      console.warn('[Frontend Supabase Init Warning]:', err);
     }
   }
 
-  // Safe dummy client to prevent unhandled exception or unresolvable DNS queries
+  // Safe fallback dummy client that never triggers unresolvable DNS lookups
   return createClient('https://app-local.supabase.co', 'dummy-anon-key-local', {
     auth: {
       persistSession: false,
@@ -54,4 +46,3 @@ function initSupabase(): SupabaseClient {
 }
 
 export const supabase = initSupabase();
-
