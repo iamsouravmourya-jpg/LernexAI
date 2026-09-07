@@ -177,35 +177,118 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .join("\n");
     }
 
-    const gemini = getGeminiClient(req);
-    let answer = "";
+    // 1. PRIMARY: Try Groq API with 4 Distributed Keys & Model Rotation
+    try {
+      const GroqModule = await import("groq-sdk");
+      const Groq = GroqModule.default || GroqModule;
 
-    if (gemini) {
-      const candidateModels = [
-        "gemini-3.1-flash-lite",
-        "gemini-3.6-flash",
-        "gemini-3.8-flash",
-        "gemini-3.7-flash",
-      ];
+      const headerKey = (req.headers["x-groq-api-key"] as string) || "";
+      const groqCandidateKeys = [
+        headerKey,
+        process.env.GROQ_API_KEY_1,
+        process.env.GROQ_API_KEY_2,
+        process.env.GROQ_API_KEY_3,
+        process.env.GROQ_API_KEY_4,
+        process.env.GROQ_API_KEY,
+        process.env.GROQ_KEY,
+        process.env.VITE_GROQ_API_KEY,
+        "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",
+      ]
+        .map((k) => (k || "").trim())
+        .filter((k) => k.length > 10 && k.startsWith("gsk_"));
 
-      const fullPrompt = `${historyContext ? `Previous Conversation:\n${historyContext}\n\n` : ""}Current Student Question: ${question}`;
+      const uniqueGroqKeys = Array.from(new Set(groqCandidateKeys));
 
-      for (const modelName of candidateModels) {
+      const groqModels = [
+        process.env.GROQ_MODEL,
+        "llama-3.3-70b-versatile",
+        "llama-3.1-8b-instant",
+        "qwen-2.5-coder-32b",
+        "mixtral-8x7b-32768",
+        "gemma2-9b-it",
+      ].filter(Boolean) as string[];
+
+      const systemPrompt = `You are LernexAI's elite AI Tutor and private coding mentor for the lesson "${lessonTitle}" (${moduleTitle}).
+${lessonContent ? `Lesson Content Context: ${lessonContent.slice(0, 1500)}` : ""}
+
+Instructions:
+1. Provide extremely clear, well-structured, and encouraging explanations.
+2. If the student asks in English, Hindi, or Hinglish, reply in the same natural tone and language style.
+3. Structure your response using clear bold headings, bullet points, and clean code blocks wrapped in triple backticks with language specifiers.
+4. Keep explanations practical, engaging, and directly applicable to the lesson.`;
+
+      for (const key of uniqueGroqKeys) {
         try {
-          const response = await gemini.models.generateContent({
-            model: modelName,
-            contents: fullPrompt,
-            config: {
-              systemInstruction: `You are an expert, encouraging AI Tutor on LernexAI for the lesson "${lessonTitle}" (${moduleTitle}). ${lessonContent ? `Lesson Content Context: ${lessonContent.slice(0, 1500)}` : ""}. Answer clearly using structured Markdown, code examples with language tags, and friendly explanations in English or Hinglish if requested.`,
-            },
-          });
+          const client = new Groq({ apiKey: key });
 
-          if (response?.text && response.text.trim()) {
-            answer = response.text.trim();
-            break;
+          for (const modelName of groqModels) {
+            try {
+              const completion = await client.chat.completions.create({
+                messages: [
+                  { role: "system", content: systemPrompt },
+                  ...(historyContext ? [{ role: "user" as const, content: `Previous context:\n${historyContext}` }] : []),
+                  { role: "user", content: question },
+                ],
+                model: modelName,
+                temperature: 0.3,
+                max_tokens: 800,
+              });
+
+              const reply = completion.choices?.[0]?.message?.content?.trim();
+              if (reply) {
+                answer = reply;
+                break;
+              }
+            } catch (modelErr: any) {
+              const msg = modelErr?.message || "";
+              if (msg.includes("429") || msg.includes("rate_limit")) {
+                // Key hit rate limit, break model loop to try next key in pool
+                break;
+              }
+            }
           }
-        } catch (modelErr: any) {
-          console.warn(`[AI Tutor Vercel] Gemini (${modelName}) warning:`, modelErr?.message);
+
+          if (answer) break;
+        } catch {
+          // Try next Groq key in pool
+        }
+      }
+    } catch {
+      // Groq import or network fallback
+    }
+
+    // 2. SECONDARY FALLBACK: Gemini API
+    if (!answer) {
+      const gemini = getGeminiClient(req);
+      if (gemini) {
+        const candidateModels = [
+          "gemini-2.5-flash",
+          "gemini-2.0-flash",
+          "gemini-1.5-flash",
+          "gemini-flash-latest",
+          "gemini-3.8-flash",
+          "gemini-3.1-flash-lite",
+        ];
+
+        const fullPrompt = `${historyContext ? `Previous Conversation:\n${historyContext}\n\n` : ""}Current Student Question: ${question}`;
+
+        for (const modelName of candidateModels) {
+          try {
+            const response = await gemini.models.generateContent({
+              model: modelName,
+              contents: fullPrompt,
+              config: {
+                systemInstruction: `You are an expert, encouraging AI Tutor on LernexAI for the lesson "${lessonTitle}" (${moduleTitle}). ${lessonContent ? `Lesson Content Context: ${lessonContent.slice(0, 1500)}` : ""}. Answer clearly using structured Markdown, code examples with language tags, and friendly explanations in English or Hinglish if requested.`,
+              },
+            });
+
+            if (response?.text && response.text.trim()) {
+              answer = response.text.trim();
+              break;
+            }
+          } catch (modelErr: any) {
+            console.warn(`[AI Tutor Vercel] Gemini (${modelName}) warning:`, modelErr?.message);
+          }
         }
       }
     }
