@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Switch, Route, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { ComingSoonProvider } from "@/context/ComingSoonContext";
@@ -186,6 +187,7 @@ function App() {
                 <Router />
               </ErrorBoundary>
               <Toaster />
+              <SpeedInsights />
             </ComingSoonProvider>
           </LanguageProvider>
         </AuthProvider>
