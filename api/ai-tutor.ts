@@ -161,9 +161,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         process.env.GROQ_MODEL,
         "llama-3.3-70b-versatile",
         "llama-3.1-8b-instant",
-        "qwen-2.5-coder-32b",
-        "mixtral-8x7b-32768",
-        "gemma2-9b-it",
+        "openai/gpt-oss-20b",
       ].filter(Boolean) as string[];
 
       const systemPrompt = `You are LernexAI's elite AI Tutor and private coding mentor for the lesson "${lessonTitle}" (${moduleTitle}).
