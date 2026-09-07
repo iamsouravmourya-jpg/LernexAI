@@ -1,0 +1,8 @@
+{
+  "name": "LernexAI",
+  "description": "Master practical skills with interactive AI, live in-browser sandboxes, instant doubt resolution, and QR-verified certificates.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

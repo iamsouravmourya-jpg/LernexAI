@@ -1,0 +1,788 @@
+================================================================================
+LERNEXAI - COMPLETE LANDING PAGE & PLATFORM CONTEXT SPECIFICATION DOCUMENT
+================================================================================
+File: LANDING_PAGE_CONTEXT.txt
+Purpose: Comprehensive, section-by-section copywriting, design system, UI/UX,
+         component architecture, state logic, and prompt instructions for an AI 
+         to generate or recreate the complete LernexAI Landing Page and related pages.
+Platform: LernexAI (Interactive EdTech Platform with AI Tutoring & Sandboxes)
+Author/Founder: Sourav (Founder & CEO, LernexAI)
+Direct Contact: iamsouravmaurya@gmail.com
+Target Audience: Indian students (College, BCA, B.Tech, B.Com), early professionals,
+                 career switchers, job seekers needing practical, resume-ready skills.
+Languages Supported: English & Hinglish (Hindi + English natural blend)
+================================================================================
+
+
+--------------------------------------------------------------------------------
+TABLE OF CONTENTS
+--------------------------------------------------------------------------------
+1. BRAND IDENTITY, VISION & DESIGN SYSTEM
+2. GLOBAL LAYOUT & AMBIENT BACKGROUND SYSTEM
+3. COMPLETE LANDING PAGE SECTION-BY-SECTION BREAKDOWN:
+   3.1  Navbar (Floating Pill Header & Navigation)
+   3.2  Hero Section (Headline, Value Props & Live Interactive AI Demo Widget)
+   3.3  Stats & Highlights Bar (Trust Metric Cards)
+   3.4  Key Benefits (3-Pillar Practical Advantage & Fast Start Banner)
+   3.5  Featured Interactive Courses (Live Curriculum Cards & Meta Info)
+   3.6  Problem vs Solution (Why Traditional Video Courses Fail vs LernexAI)
+   3.7  Subjects & Learning Tracks (Filterable 8-Track Grid)
+   3.8  Features Deep-Dive (4 Interactive Feature Tabs & Demos)
+   3.9  How It Works (4-Step Road to Mastery)
+   3.10 Tamper-Proof Certificate Showcase (Interactive Live Certificate & QR Verification)
+   3.11 Transparent Pricing & Plans (Free Starter vs Pro Mastery ₹399 vs Verified Credential)
+   3.12 Social Proof & Verified Student Reviews (Filtered by Category)
+   3.13 Frequently Asked Questions (Accordion by Category)
+   3.14 High-Impact Bottom Call to Action (CTA Banner)
+   3.15 Global Footer (Links, Testing Mode Credentials, Copyright)
+4. CONNECTED PUBLIC PAGES CONTEXT:
+   4.1  About Founder Page (/about-founder)
+   4.2  Contact & Support Page (/contact)
+   4.3  Public Certificate Verification Page (/verify)
+   4.4  Authentication Page (/auth) & 1-Click Demo Login
+   4.5  Course Browse Page (/browse)
+   4.6  Legal Pages (Terms of Service /terms & Privacy Policy /privacy)
+5. EXACT DATA OBJECTS & JSON SCHEMAS (Ready to Copy-Paste)
+6. INSTRUCTIONS & MASTER PROMPT FOR TARGET AI GENERATOR
+--------------------------------------------------------------------------------
+
+
+================================================================================
+1. BRAND IDENTITY, VISION & DESIGN SYSTEM
+================================================================================
+
+A. Brand Core:
+- Brand Name: LernexAI
+- Logo Icon: Stylized graduation cap + isometric layered knowledge cube with white/gold accents inside an indigo-to-purple gradient container (rounded-xl, 40x40px).
+- Slogan / Tagline: "Master Practical Skills with Interactive AI"
+- Core Value Proposition:
+  Eliminates boring 20-hour video courses. LernexAI teaches through hands-on
+  in-browser code/spreadsheet sandboxes, 24/7 bilingual (Hinglish/English) AI doubt
+  solving with sub-2s responses, and tamper-proof QR-verified certificates with
+  formal academic grades (O, A+, A, B, C).
+
+B. Color Palette (Tailwind CSS compatible):
+- Primary Accent: Indigo (#4F46E5, indigo-600) to Purple (#9333EA, purple-600) gradients.
+- Dark Canvas / High Contrast Sections: Slate-900 (#0F172A), Indigo-950 (#0B0F19), Slate-950 (#020617).
+- Light Background: Pure White (#FFFFFF) to Slate-50 (#F8FAFC), subtle Indigo-50/30 wash.
+- Success / Verified: Emerald (#10B981, emerald-500/600), Emerald-50 background.
+- Warning / Highlight Badges: Amber (#F59E0B, amber-500/600), Amber-50 background.
+- Danger / Pain Points: Rose (#F43F5E, rose-500/600), Rose-50 background.
+- Border Grays: Slate-200 (#E2E8F0) and Slate-100 (#F1F5F9).
+
+C. Typography:
+- Font Family: Plus Jakarta Sans / Inter for crisp UI and body; Playfair Display / Serif accents strictly reserved for academic certificate canvas.
+- Hierarchy:
+  * Hero Heading: 3xl to 6xl, font-black (font weight 900), tracking-tight, leading-[1.1].
+  * Section Titles: 3xl to 5xl, font-black (font weight 900), tracking-tight.
+  * Card Titles: lg to xl, font-bold (font weight 700).
+  * Body Text: 14px to 16px (text-sm to text-base), leading-relaxed, text-slate-600.
+  * Eyebrow Badges: 11px to 12px (text-xs), font-bold, uppercase tracking-wider with glowing dot or icon.
+
+D. Key UI Patterns:
+- Floating Pill Navigation bar with backdrop-blur-xl and subtle shadow.
+- Ambient background blur orbs (Indigo-200/30, Purple-200/30) that gently float.
+- Fine tech-grid background lines (32px x 32px grid pattern with 4% opacity).
+- Interactive Live Demos directly on the landing page (users can type doubts and see instant answers without signing in).
+- Rounded Corners: 2xl (16px) to 3xl (24px) for cards; rounded-full for buttons and pills.
+
+
+================================================================================
+2. GLOBAL LAYOUT & AMBIENT BACKGROUND SYSTEM
+================================================================================
+
+The landing page (`/src/pages/Home.tsx`) is a seamless vertical single-page scroll layout containing 14 distinct stacked sections.
+
+Global wrapper characteristics:
+- Background: `bg-white text-slate-900 relative min-h-screen overflow-hidden font-sans`
+- Selection Color: `selection:bg-indigo-100 selection:text-indigo-900`
+- Texture: Fixed subtle noise/grid overlay with pointer-events-none.
+- Ambient Orbs:
+  * Top-Left: `w-[50%] h-[50%] bg-indigo-200/30 blur-[120px]`
+  * Bottom-Right: `w-[40%] h-[40%] bg-purple-200/30 blur-[120px]`
+- Authentication State Handling:
+  If a user is already signed in (`useAuth().user`), visiting the homepage automatically redirects to `/dashboard`. If an OAuth callback is detected (`?code=...`), it smoothly forwards to `/auth/callback`.
+
+
+================================================================================
+3. COMPLETE LANDING PAGE SECTION-BY-SECTION BREAKDOWN
+================================================================================
+
+--------------------------------------------------------------------------------
+3.1 NAVBAR COMPONENT (Navbar.tsx)
+--------------------------------------------------------------------------------
+Location: Fixed at top (`fixed top-0 left-0 right-0 z-50 flex items-center justify-center pt-3 sm:pt-4 px-3 sm:px-4`)
+Container: Floating pill (`max-w-6xl mx-auto h-16 rounded-full bg-white/80 backdrop-blur-xl border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.06)] px-4 sm:px-6`)
+
+Elements:
+1. Brand Logo:
+   - Icon: Indigo/purple rounded-xl box (w-10 h-10) with white 3D layered knowledge cube vector.
+   - Text: "LernexAI" (Black text with "AI" in indigo-to-purple gradient).
+   - Link: Navigates to `/`.
+
+2. Desktop Nav Links (hidden on mobile, visible on `md:flex`):
+   - "Courses" -> Link to `/browse`
+   - "Features" -> Smooth scroll anchor `#features`
+   - "How It Works" -> Smooth scroll anchor `#how-it-works`
+   - "Certificate" -> Smooth scroll anchor `#certificate`
+   - "Verify" -> Rounded-full pill badge with ShieldCheck icon, linking to `/verify` (bg-indigo-50 text-indigo-700 border-indigo-100).
+
+3. Right Action Items:
+   - Language Selector: Pill toggle with globe icon. Lets user switch between EN (English) and HI (Hindi).
+   - Login Button (Ghost variant, text-slate-700 font-semibold):
+     * If user logged in: displays "Dashboard" (routes to `/dashboard`)
+     * If guest: displays "Log In" (routes to `/auth`)
+   - Primary CTA Button ("Start Free" / "Go to Dashboard"):
+     * Rounded-full, gradient `from-indigo-600 to-purple-600`, text-white, font-bold, shadow-md shadow-indigo-200.
+   - Mobile Hamburger Menu Button (`md:hidden`):
+     * Toggles responsive floating dropdown card with links to `/browse`, `#features`, `#how-it-works`, `#certificate`, `/verify`, plus language switch and Auth buttons.
+
+
+--------------------------------------------------------------------------------
+3.2 HERO SECTION (Hero.tsx)
+--------------------------------------------------------------------------------
+Location: First view below navbar (`pt-24 pb-16 md:pt-32 md:pb-24`)
+Layout: 12-column responsive grid (6 columns Left Content, 6 columns Right Live Demo Widget)
+
+A. Left Content Column:
+1. Animated Top Badge:
+   - Style: Rounded-full pill with pinging status dot and Zap icon.
+   - Copy: "Next-Gen Adaptive AI Tutoring • Hinglish + English"
+2. Main Headline:
+   - Copy: "Master Practical Skills with Interactive AI."
+   - Visual Treatment: "Interactive AI." has `text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-500`.
+3. Subtitle / Value Hook:
+   - Copy: "No boring 20-hour video dumps. LernexAI gives you live in-browser formula & code sandboxes, instant Hinglish doubt resolution, bite-sized checkpoints, and official QR-verified certificates."
+4. Call-to-Action Buttons:
+   - Primary Button: "Start Learning Free" (or "Open My Dashboard" if logged in) with ArrowRight icon.
+     Action: Logs into instant 1-click Demo mode or forwards to `/dashboard`.
+   - Secondary Button: "Explore Curriculum" with BookOpen icon.
+     Action: Navigates to `/browse`.
+5. 3 Trust Metric Icons Bar (Bottom of Left Column):
+   - Item 1: 100% Free Core | Full Lessons (Emerald CheckCircle2 icon)
+   - Item 2: 24/7 AI Tutor | Hindi + English (Purple Bot icon)
+   - Item 3: QR Credentials | Tamper-Proof (Indigo ShieldCheck icon)
+
+B. Right Column - Live Interactive AI Tutor & Sandbox Preview Widget:
+An authentic, working simulation card where visitors can test the AI tutor before signing up!
+Card Structure:
+1. Header Bar: Dark gradient (`from-indigo-950 via-slate-900 to-indigo-900`) with:
+   - Bot icon + "LernexAI Instant Doubt Solver"
+   - Pulsing green status dot: "● Active"
+   - Subtitle: "Ask any question in Hindi or English"
+   - Speed Badge: "Sub-2s Response" (Sparkles icon)
+2. Interactive Demo Preset Tabs:
+   - Tab 1: "VLOOKUP vs XLOOKUP" (FileSpreadsheet icon)
+     * Question: "Excel me VLOOKUP aur XLOOKUP me kya fark hai?"
+     * AI Answer: "VLOOKUP sirf left-to-right lookup karta hai, jabki XLOOKUP kisi bhi direction me match dhund sakta hai aur exact matches by default deta hai!"
+     * Code Snippet Box: `=XLOOKUP(E2, A2:A100, C2:C100, "Not Found")`
+     * Badge: "Autograded instantly in browser sandbox"
+   - Tab 2: "List vs Tuple" (Code2 icon)
+     * Question: "Python me list aur tuple me main difference kya hai?"
+     * AI Answer: "List mutable (changeable) hoti hai jaise [1, 2, 3], jabki tuple immutable hota hai. Tuples memory me faster aur safer hote hain!"
+     * Code Snippet Box: `my_list = [10, 20] # mutable\nmy_tuple = (10, 20) # immutable`
+   - Tab 3: "Accurate Prompts" (Cpu icon)
+     * Question: "AI Prompt ko accurate banane ka best formula kya hai?"
+     * AI Answer: "Clear Role + Context + Constraints + Output Format = Guaranteed High Quality Output every time!"
+     * Code Snippet Box: `System: "Act as Lead Data Analyst."`
+3. Custom Live Question Form:
+   - Input Box: Placeholder: "Type your doubt (e.g. Pivot table kaise banaye?)..."
+   - Button: "Ask AI" with Send icon. Submitting immediately displays the doubt with an instant AI response!
+4. Bottom Bar:
+   - "Want to test in live Python & Excel sandboxes?" -> Clickable link: "Launch Free Sandbox ->".
+
+
+--------------------------------------------------------------------------------
+3.3 STATS & HIGHLIGHTS BAR (Stats.tsx)
+--------------------------------------------------------------------------------
+Location: Full-width section below Hero (`py-8 sm:py-10 bg-white/90 backdrop-blur-md border-y border-slate-200/80`)
+Layout: 4-Column Bento Card Grid (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4`)
+
+Cards:
+1. Card 1:
+   - Icon: Zap (Amber)
+   - Title: "100% Free Core Access"
+   - Description: "Full access to lessons & sandbox"
+   - Badge: "No Paywall"
+2. Card 2:
+   - Icon: Bot (Indigo)
+   - Title: "Bilingual AI Tutor"
+   - Description: "Instant help in Hinglish & English"
+   - Badge: "Sub-2s Speed"
+3. Card 3:
+   - Icon: Terminal (Emerald)
+   - Title: "In-Browser Sandboxes"
+   - Description: "Practice Excel & Python directly"
+   - Badge: "Zero Setup"
+4. Card 4:
+   - Icon: ShieldCheck (Purple)
+   - Title: "Verifiable Credentials"
+   - Description: "QR authenticated certificates"
+   - Badge: "Tamper-Proof"
+
+
+--------------------------------------------------------------------------------
+3.4 KEY BENEFITS SECTION (KeyBenefits.tsx)
+--------------------------------------------------------------------------------
+Location: Mid-page (`py-20 md:py-28 bg-gradient-to-b from-white via-indigo-50/20 to-white`)
+Header:
+- Eyebrow: "Built for Practical Learners" (Sparkles icon)
+- Title: "Everything you need to master in-demand skills, without the complexity."
+- Subtitle: "We cut out the fluff. Get straight to hands-on exercises, instant doubt solving, and structured curriculum paths."
+
+3 Pillar Cards:
+1. Pillar 1: "100% Free Core Access"
+   - Description: "No paywalls on basic lessons and sandboxes. Start learning Excel, Python, and AI prompt engineering right away."
+   - Footer Tag: "Included in Free Starter Plan"
+2. Pillar 2: "Bilingual AI Support (Hinglish + English)"
+   - Description: "Ask doubts in natural Hindi or English. The AI tutor explains formulas and syntax instantly with zero jargon."
+   - Footer Tag: "Included in Free Starter Plan"
+3. Pillar 3: "QR-Verified Certificates"
+   - Description: "Earn official tamper-proof certificates upon completing modules that recruiters can verify instantly via QR code."
+   - Footer Tag: "Included in Free Starter Plan"
+
+Bottom Dark Callout Banner:
+- Background: Gradient `from-indigo-950 via-slate-900 to-indigo-900` with rounded-3xl.
+- Title: "Ready to start your first lesson?"
+- Subtitle: "Join thousands of learners building real skills with LernexAI today. No credit card required."
+- CTA: "Start Learning Now ->" (Instant login or dashboard launch).
+
+
+--------------------------------------------------------------------------------
+3.5 FEATURED INTERACTIVE COURSES (FeaturedCourses.tsx)
+--------------------------------------------------------------------------------
+Location: `py-20 bg-slate-50/70 border-b border-slate-200/60`
+Header:
+- Eyebrow: "Industry-Aligned Curriculum"
+- Title: "Featured Interactive Courses"
+- Subtitle: "Practical hands-on courses equipped with in-browser simulators, real-time Hinglish AI tutoring, and verified completion credentials."
+- Right Action: "Explore All Courses ->" (Links to `/browse`)
+
+3 Core Featured Courses:
+1. Course 1: "Excel for Beginners Masterclass" (ID: course-excel-basic)
+   - Category: "Data & Analytics" | Level: "Beginner" | Duration: "8h estimated"
+   - Thumbnail: Unsplash high-res spreadsheet workspace image
+   - Description: "Master essential desktop spreadsheet skills: data entry, auto-fill, formulas, conditional formatting, VLOOKUP/XLOOKUP, and pivot tables."
+   - Key Features: 4 Interactive Modules + Quizzes, In-Browser Grid Sandbox, Verified Certificate on Completion.
+   - Action Button: "Start Learning Free ->"
+
+2. Course 2: "Python Programming 101" (ID: course-python-101)
+   - Category: "Programming" | Level: "Beginner to Intermediate" | Duration: "12h estimated"
+   - Thumbnail: Clean modern coding setup image
+   - Description: "From zero coding experience to writing real automation scripts. Learn variables, loops, functions, lists, and object-oriented programming."
+   - Key Features: 4 Interactive Modules + Quizzes, In-Browser Python Code Runner, Verified Certificate on Completion.
+   - Action Button: "Start Learning Free ->"
+
+3. Course 3: "Generative AI & Prompt Engineering Foundations" (ID: course-ai-foundations)
+   - Category: "AI & Future Tech" | Level: "All Levels" | Duration: "6h estimated"
+   - Thumbnail: Neural network and AI concept visualization image
+   - Description: "Learn the art and science of communicating with Large Language Models. Master zero-shot, few-shot, and chain-of-thought prompting."
+   - Key Features: 3 Interactive Modules + Quizzes, Live AI Prompt Simulator, Verified Certificate on Completion.
+   - Action Button: "Start Learning Free ->"
+
+
+--------------------------------------------------------------------------------
+3.6 PROBLEM VS SOLUTION SECTION (Problem.tsx)
+--------------------------------------------------------------------------------
+Location: `py-20 md:py-28 bg-gradient-to-b from-white via-slate-50 to-white border-y border-slate-200/80`
+Header:
+- Eyebrow: "Why Traditional Courses Fail" (Flame icon, Rose-50)
+- Title: "Stop wasting hours on passive videos. Start active learning."
+- Subtitle: "Most online tutorials have a 95% dropout rate because they are boring and passive. LernexAI transforms education into an engaging dialogue."
+
+Head-to-Head Comparison:
+Column 1: "Traditional Tutorials (YouTube, Udemy & Recorded Lectures)"
+- Tag: "95% Abandon Rate" (Rose badge)
+- Pain Point 1 (Method): "Endless Passive Video Playlists - Watching 20-hour videos without writing code or touching Excel sheets. You forget 80% within 48 hours."
+- Pain Point 2 (Doubts): "Stuck on Errors for Days - Waiting in dead Discord servers, YouTube comments, or Google forums just to fix one formula syntax."
+- Pain Point 3 (Checks): "Zero Knowledge Checks - No real-time quizzes or practice checks. You only realize you didn't understand during interviews."
+
+Column 2: "The LernexAI Active System"
+- Tag: "Active Mastery" (Emerald badge)
+- Solution 1 (Method): "Bite-Sized Interactive Challenges - Learn 1 concept at a time with live simulated sandboxes, interactive code runs, and instant feedback."
+- Solution 2 (Doubts): "Instant 24/7 AI Tutor (Hinglish/English) - Ask in plain natural Hindi or English. Get contextual line-by-line explanations in under 2 seconds."
+- Solution 3 (Checks): "Micro-Quizzes & Grade Milestones - Every lesson ends with an auto-graded interactive quiz to lock in concept mastery before moving ahead."
+
+
+--------------------------------------------------------------------------------
+3.7 SUBJECTS & LEARNING TRACKS (Subjects.tsx)
+--------------------------------------------------------------------------------
+Location: `py-20 md:py-28 bg-slate-50/70`
+Filter Tabs:
+- "All Disciplines"
+- "Business & Analytics"
+- "Programming & Code"
+- "AI & Modern Tech"
+- "Creative & Design"
+
+8 Comprehensive Learning Tracks:
+1. "Excel & Data Analytics"
+   - Skills: Formulas, Pivot Tables, Financial Models, Charts
+   - Badge: Most Popular | Color: Emerald
+2. "Python Programming"
+   - Skills: OOP, Data Structures, Automation, File I/O
+   - Badge: High Demand | Color: Blue/Indigo
+3. "Generative AI & Prompt Engineering"
+   - Skills: Prompt Crafting, LLM APIs, Autonomous Agents, RAG
+   - Badge: Trending 2026 | Color: Purple
+4. "SQL & Relational Databases"
+   - Skills: PostgreSQL, JOINs, Aggregation, Database Design
+   - Badge: Core Skill | Color: Amber/Orange
+5. "Finance & Stock Markets"
+   - Skills: Valuation, Balance Sheets, Technical Analysis, Risk
+   - Badge: Career Track | Color: Cyan
+6. "UI/UX & Product Design"
+   - Skills: Figma, Design Systems, User Research, Color Theory
+   - Badge: Creative | Color: Pink/Rose
+7. "Cybersecurity Essentials"
+   - Skills: Network Security, Auth Protocols, Pen-testing, Zero-Trust
+   - Badge: Crucial | Color: Rose/Red
+8. "Exam & Interview Prep"
+   - Skills: Quantitative, Logic Puzzles, Algorithms, Mock Drills
+   - Badge: Placements | Color: Violet/Purple
+
+
+--------------------------------------------------------------------------------
+3.8 FEATURES DEEP-DIVE SHOWCASE (Features.tsx)
+--------------------------------------------------------------------------------
+Location: `py-20 md:py-32 bg-white scroll-mt-20 id="features"`
+Header:
+- Eyebrow: "The LernexAI Advantage"
+- Title: "Built for how the human brain actually learns."
+- Subtitle: "Every feature is engineered to move you from passive consumption to hands-on mastery in half the time."
+
+4 Switchable Feature Tabs with Rich Visuals:
+1. Tab 1: "Bilingual AI Tutor" (Tag: Hinglish + English)
+   - Headline: "Ask doubts naturally in simple Hinglish or English."
+   - Copy: "No confusing academic jargon. If you ask 'Python me for loop kaise kaam karta hai?', the AI tutor explains using intuitive real-life analogies like 'Socho ek train ke coaches...' with live code examples."
+   - Highlight: "Available 24/7 with zero waiting time"
+2. Tab 2: "Interactive Sandboxes" (Tag: Hands-on Code & Sheets)
+   - Headline: "Never just watch—practice directly inside your browser."
+   - Copy: "Simulated Excel grid cells, Python code runners, and formula parsers directly embedded into each lesson. If your syntax is wrong, you receive line-by-line correction instantly."
+   - Highlight: "No software installation needed"
+3. Tab 3: "Adaptive Micro-Quizzes" (Tag: Active Recall)
+   - Headline: "Lock in retention with real-time concept checkpoints."
+   - Copy: "Bite-sized questions after every 3-minute concept. AI analyzes your weak points and gives personalized follow-up hints so you never stay confused."
+   - Highlight: "Instant explanations for every option"
+4. Tab 4: "Verifiable Credential" (Tag: QR Authenticated)
+   - Headline: "Earn industry-grade certificates with dynamic grading."
+   - Copy: "Pass the comprehensive final exam to unlock your official certificate with a unique Verification ID and QR code shareable on LinkedIn and resumes."
+   - Highlight: "Graded on Outstanding (O) to Pass criteria"
+
+
+--------------------------------------------------------------------------------
+3.9 HOW IT WORKS 4-STEP ROADMAP (HowItWorks.tsx)
+--------------------------------------------------------------------------------
+Location: `py-20 md:py-32 bg-slate-50 border-y border-slate-200/80 id="how-it-works"`
+Header:
+- Eyebrow: "Simple 4-Step Process"
+- Title: "How LernexAI accelerates your learning."
+- Subtitle: "From complete beginner to job-ready verified graduate in four seamless steps."
+
+The 4 Steps:
+- Step 01: "Pick Any Skill or Goal"
+  Description: Choose from high-demand courses like Excel Masterclass, Python Programming, or AI Prompting.
+  Tip: "Takes under 10 seconds to begin without lengthy onboarding forms."
+- Step 02: "Learn with Interactive Units"
+  Description: Read crisp, jargon-free explanations paired with live formulas and code snippet execution.
+  Tip: "Lessons are designed in 3 to 5-minute bite-sized concepts."
+- Step 03: "Clear Doubts with 24/7 AI Tutor"
+  Description: Ask follow-up questions in Hinglish or English whenever you get stuck. Instant answers tailored to your level.
+  Tip: "Never wait for office hours or slow discussion boards."
+- Step 04: "Pass Assessment & Get Certified"
+  Description: Complete the proctored module quizzes and final exam to earn a tamper-proof, QR-verifiable certificate.
+  Tip: "Add your credential directly to LinkedIn and your resume."
+
+
+--------------------------------------------------------------------------------
+3.10 TAMPER-PROOF CERTIFICATE SHOWCASE (Certificate.tsx)
+--------------------------------------------------------------------------------
+Location: `py-20 md:py-32 bg-gradient-to-b from-white via-slate-50 to-white id="certificate"`
+Header:
+- Eyebrow: "Official Tamper-Proof Credential"
+- Title: "Real Certificates with Live QR Verification."
+- Subtitle: "Complete your coursework, pass the final proctored exam, and receive an authentic verifiable certificate signed by our founders."
+
+Interactive Demo Layout (Left: Live Certificate Preview Canvas; Right: Interactive Controls):
+A. Certificate Document Canvas (Authentic Replica):
+- Border: Ornate 4px dark navy (`#12294a`) border with gold corner flourishes (`#ca8a04`).
+- Top Banner: Dark Navy wave header with LernexAI gold logo badge and "LERNEXAI ACADEMY OF TECHNOLOGY & BUSINESS".
+- Heading: "CERTIFICATE OF ACHIEVEMENT"
+- Subtitle: "THIS RECOGNITION IS PROUDLY CONFERRED UPON"
+- Student Name: Rendered in large bold serif text (dynamically reactive to user input!).
+- Body: "For outstanding performance, conceptual mastery, and successful completion of all proctored assessments in the curriculum of [Course Name]."
+- Grade Badge: Dynamic badge showing selected grade (e.g. "GRADE: O (OUTSTANDING) — 95%").
+- Verification Elements:
+  * Tamper-Proof QR Code box
+  * Verification ID: "VERIFICATION ID: LXAI-2026-EXCEL-98"
+  * Verification URL: "verify.lernexai.com/verify?id=LXAI-2026-EXCEL-98"
+- Dual Signatures:
+  * Signature 1: Sourav (Founder & CEO, LernexAI)
+  * Signature 2: Academic Director / Head of Curriculum
+  * Official Embossed Gold Seal ("VERIFIED CREDENTIAL • OFFICIAL RECOGNITION")
+
+B. Right Control Panel:
+- Interactive Name Input: "Enter your name to preview your certificate" (updates live!).
+- Course Selector Dropdown: "Excel for Beginners Masterclass", "Python Programming 101", "AI & Prompt Engineering Foundations".
+- Grade Selector Pills:
+  * 91–100%: Grade O (Outstanding)
+  * 81–90%: Grade A+ (Excellent)
+  * 71–80%: Grade A (Very Good)
+  * 61–70%: Grade B (Good)
+  * 50–60%: Grade C (Satisfactory)
+- Button: "Earn Your Certificate Now ->"
+
+
+--------------------------------------------------------------------------------
+3.11 TRANSPARENT PRICING & PLANS (Pricing.tsx)
+--------------------------------------------------------------------------------
+Location: `py-24 bg-white`
+Header:
+- Eyebrow: "Honest & Transparent Pricing"
+- Title: "Start free. Upgrade only when you want to accelerate."
+- Subtitle: "No hidden charges or surprise auto-debits. Core education should always remain accessible."
+
+3 Side-by-Side Plans:
+1. Plan 1: "Free Starter Plan" — ₹0 / forever
+   - Subtitle: "Perfect to explore core lessons, try in-browser sandboxes, and start learning."
+   - Inclusions:
+     * Core lessons & grid notes
+     * In-browser interactive sandboxes
+     * Basic Hinglish AI tutor access
+     * End-of-module micro quizzes
+   - CTA: "Get Started Free" (Outline button)
+
+2. Plan 2: "Pro Mastery Pass" — ₹399 / month (Highlighted, Best Value)
+   - Badge: "Most Popular" (Zap icon)
+   - Styling: Deep Indigo/Purple gradient card, scaling 1.05x with vibrant glow.
+   - Subtitle: "Unlimited access to all courses, advanced sandboxes, and priority AI tutoring."
+   - Inclusions:
+     * All Excel, Python & AI Courses
+     * Unlimited 24/7 AI Doubt Solver (Deep Explanations)
+     * Advanced Code & Formula Sandboxes
+     * Priority Support & Curriculum Updates
+     * Custom practice generation by AI
+   - CTA: "Upgrade to Pro — ₹399/mo" (White bold button)
+
+3. Plan 3: "Official Certificate Add-on" — ₹99 to ₹199 (One-Time per Course)
+   - Badge: "🎓 Verified Credential"
+   - Subtitle: "Pass the proctored exam and unlock your tamper-proof QR verified certificate."
+   - Inclusions:
+     * Comprehensive proctored final exam
+     * Permanent Verification ID & QR Code
+     * High-res print-ready PDF download
+     * 1-Click LinkedIn credential verification
+   - CTA: "View Certificate Sample"
+
+
+--------------------------------------------------------------------------------
+3.12 SOCIAL PROOF & VERIFIED TESTIMONIALS (Testimonials.tsx)
+--------------------------------------------------------------------------------
+Location: `py-20 md:py-32 bg-gradient-to-b from-slate-50 via-white to-slate-50 border-y border-slate-200/80`
+Header:
+- Eyebrow: "Proven Learning Outcomes" (Sparkles icon)
+- Title: "Loved by thousands of students and career switchers across India."
+- Subtitle: "Real stories from learners who transformed their technical confidence with LernexAI."
+
+Filter Tabs:
+- All Reviews | Excel | Python | AI
+
+6 Real Indian Student & Professional Testimonials:
+1. Arjun Verma (Junior Data Analyst, Pune, MH):
+   - Course: Excel for Beginners Masterclass | Grade: Grade O (96%) | Outcome: "Promoted to Junior Analyst"
+   - Quote: "Pehle YouTube par 10 ghante ki videos dekhi lekin VLOOKUP aur XLOOKUP hamesha confuse karte the. LernexAI ke interactive formulas aur Hinglish doubt clearing se 2 din me clear ho gaya!"
+2. Priya Sharma (CS Undergraduate, Delhi NCR):
+   - Course: Python Programming 101 | Grade: Grade A+ (88%) | Outcome: "Cleared College Coding Round"
+   - Quote: "The instant micro-quizzes after every 3 minutes of reading make sure you never zone out. The AI Tutor explains complex recursion like a friendly senior!"
+3. Rahul Nair (Product Ops Associate, Bengaluru, KA):
+   - Course: AI Foundations & Prompting | Grade: Grade O (94%) | Outcome: "Interview Verified on LinkedIn"
+   - Quote: "LernexAI certificate with QR code looked very legitimate on my LinkedIn profile. My interviewer even asked me about the interactive problem sets I solved!"
+4. Sneha Mukherjee (Commerce Student, Kolkata, WB):
+   - Course: Excel for Beginners Masterclass | Grade: Grade A (82%) | Outcome: "Mastered Financial Models"
+   - Quote: "Sabse achi baat hai ki bina kisi complicated login ya credit card ke instant interactive learning mil jati hai. Bilkul straightforward aur high-value!"
+5. Karan Patel (Frontend Developer, Ahmedabad, GJ):
+   - Course: Python Programming 101 | Grade: Grade O (98%) | Outcome: "Built Automated API Scripts"
+   - Quote: "Having in-browser code execution without setting up local virtual environments is huge for beginners. The learning curve becomes practically effortless."
+6. Meera Iyer (MBA Aspirant, Chennai, TN):
+   - Course: AI Foundations & Prompting | Grade: Grade A+ (90%) | Outcome: "Fast-tracked Case Study Analysis"
+   - Quote: "Clean, distraction-free interface. No ads, no popups. Just pure concepts, instant feedback, and verifiable outcomes. Highly recommended!"
+
+
+--------------------------------------------------------------------------------
+3.13 FREQUENTLY ASKED QUESTIONS (FAQ.tsx)
+--------------------------------------------------------------------------------
+Location: `py-20 md:py-32 bg-white id="faq"`
+Header:
+- Eyebrow: "Got Questions?"
+- Title: "Frequently Asked Questions"
+- Subtitle: "Everything you need to know about the platform, courses, AI tutor, and certifications."
+Filter Pills: "All Questions", "General & Access", "Courses & AI Tutor", "Certificates & Verification"
+
+6 Key FAQs & Explanations:
+1. Q: "Is LernexAI really 100% free?"
+   A: "Yes! All courses, interactive modules, in-browser sandboxes, and AI doubt clearing in testing mode are completely free. You can start learning without entering any credit card or payment info."
+2. Q: "Can I learn and ask doubts in Hindi or Hinglish?"
+   A: "Absolutely! Our 24/7 AI Tutor is natively bilingual. You can ask complex technical doubts like 'Python me list comprehension kaise likhein?' or 'Excel VLOOKUP formula explain karo' and get clear, conversational explanations with real-world examples."
+3. Q: "How do the grades and QR certificate verification work?"
+   A: "Every course has end-of-module quizzes and a comprehensive final exam. When you score 50% or above, a unique tamper-proof certificate is generated with your specific grade (O, A+, A, B, C) and a verifiable QR code that anyone can check on our /verify page."
+4. Q: "Do I need to install any software (like Python or Excel) on my computer?"
+   A: "No software installation is required! All code execution, formula simulations, and interactive challenges run seamlessly inside your web browser on desktop and mobile."
+5. Q: "How does the Testing Mode Demo account work?"
+   A: "We offer an instant 1-click Demo account (demo@lernexai.com / demo1234) so you can immediately explore courses, solve quizzes, and test certificate generation without any tedious registration steps."
+6. Q: "Can I add LernexAI certificates to my LinkedIn profile and resume?"
+   A: "Yes! Every certificate includes a permanent Verification ID (e.g., LRNX-8921-EXCEL) and direct sharing capabilities tailored for LinkedIn and portfolio resumes."
+
+
+--------------------------------------------------------------------------------
+3.14 HIGH-IMPACT BOTTOM CTA (Cta.tsx)
+--------------------------------------------------------------------------------
+Location: Bottom section above footer (`py-20 px-4 sm:px-6 bg-slate-900`)
+Container: Deep Dark Capsule Card (`max-w-6xl mx-auto rounded-[3rem] bg-gradient-to-br from-indigo-950 via-slate-900 to-purple-950 p-8 sm:p-16 text-center border border-indigo-500/20 shadow-2xl`)
+
+Elements:
+1. Badge: "Instant Access • 100% Free Demo" (Zap icon)
+2. Headline: "Start your skill journey with LernexAI today."
+3. Subtitle: "Join thousands of learners mastering Excel, Python, and AI. No credit card required, instant interactive exercises, and verifiable certifications."
+4. Buttons:
+   - Primary: "Start Learning Free (1-Click Demo) ->" (White button with bold text)
+   - Secondary: "Explore Course Library" (Outlined translucent button)
+5. Trust Badges:
+   - "Instant 1-Click Access" (CheckCircle2)
+   - "Bilingual AI Tutor Support" (CheckCircle2)
+   - "Verifiable QR Certificates" (CheckCircle2)
+
+
+--------------------------------------------------------------------------------
+3.15 GLOBAL FOOTER (Footer.tsx)
+--------------------------------------------------------------------------------
+Location: Full-width dark footer (`bg-slate-900 text-slate-300 pt-16 pb-12 border-t border-slate-800`)
+
+Columns:
+- Col 1: Brand & Mission
+  * LernexAI Logo + Name
+  * Bio: "The next-generation interactive AI learning platform. Master high-demand tech and business skills in simple Hinglish and English with 24/7 AI tutoring and verified certifications."
+  * Demo Mode Pill: Pulsing green dot + "Testing Mode: Demo ID: demo@lernexai.com"
+- Col 2: "Featured Tracks"
+  * Excel Masterclass (/course/course-excel-basic)
+  * Python Programming (/course/course-python-101)
+  * AI & Prompt Engineering (/course/course-ai-foundations)
+  * Browse All Courses (/browse)
+- Col 3: "Platform"
+  * AI Tutor (Hinglish) (#features)
+  * Interactive Sandboxes (#how-it-works)
+  * Grade Standards (#certificate)
+  * Verify Credential ID (/verify)
+- Col 4: "Company & Legal"
+  * About Founder (/about-founder)
+  * Contact Support (/contact)
+  * Privacy Policy (/privacy)
+  * Terms of Service (/terms)
+- Bottom Bar:
+  * "© [Year] LernexAI Academy. All rights reserved."
+  * "Built with passion for next-generation learners" (Heart icon)
+
+
+================================================================================
+4. CONNECTED PUBLIC PAGES CONTEXT
+================================================================================
+
+--------------------------------------------------------------------------------
+4.1 ABOUT FOUNDER PAGE (/about-founder - AboutFounder.tsx)
+--------------------------------------------------------------------------------
+- Purpose: Build immense human trust and relatability with Indian students.
+- Founder Profile:
+  * Name: Sourav
+  * Title: Founder & CEO, LernexAI
+  * Background: 19-year-old self-taught full-stack developer and AI builder, currently pursuing BCA at IGNOU.
+  * Direct Contact Email: iamsouravmaurya@gmail.com
+- Founder's Vision Statement:
+  "Education shouldn't be a maze of expensive subscriptions and endless video playlists. Every student deserves a clean, intelligent, and structured companion that adapts to their pace."
+- 4 Bento Cards on the Page:
+  1. "Why I Built LernexAI": Tired of passive tutorials with 95% dropout rates. Built interactive bite-sized learning.
+  2. "The Mission": Empower tier-2, tier-3, and metro college students with industry-relevant skills in simple language.
+  3. "Open & Transparent": Free access to core modules so nobody is left behind due to financial hurdles.
+  4. "Get In Touch": 1-click email copy button to message Sourav directly.
+
+--------------------------------------------------------------------------------
+4.2 CONTACT & SUPPORT CENTER (/contact - Contact.tsx)
+--------------------------------------------------------------------------------
+- Purpose: Transparent support channel for technical queries, course questions, and feedback.
+- Hero Header: "Contact & Support Center - Have questions, feedback, or need assistance with your learning roadmap? We're here to help you succeed."
+- Direct Support Contact: iamsouravmaurya@gmail.com (with 1-click clipboard copy).
+- FAQ preview on contact page for quick resolutions.
+
+--------------------------------------------------------------------------------
+4.3 PUBLIC CERTIFICATE VERIFICATION PAGE (/verify - VerifyCertificate.tsx)
+--------------------------------------------------------------------------------
+- Purpose: Public URL allowing recruiters, employers, and colleges to verify credentials.
+- Input: Certificate ID search field (e.g. `LXAI-2026-EXCEL-98`).
+- Verification Logic:
+  Queries database or verification service. When found, displays:
+  * Status: "VERIFIED CREDENTIAL" (Green badge with ShieldCheck)
+  * Student Name
+  * Course Name
+  * Issue Date
+  * Score & Letter Grade (O, A+, A, B, C)
+  * Permanent Verification URL & QR code
+  * Download PDF option and LinkedIn share link.
+
+--------------------------------------------------------------------------------
+4.4 AUTHENTICATION PAGE (/auth - Auth.tsx)
+--------------------------------------------------------------------------------
+- Purpose: Streamlined onboarding with zero friction.
+- Key Options:
+  1. Instant 1-Click Demo Login:
+     Pre-filled demo credentials (`demo@lernexai.com` / `demo1234`) that let users test all features immediately.
+  2. Google OAuth Sign-In: 1-click sign-in via Google account.
+  3. Standard Email + Password (Sign Up & Sign In): Includes First Name, Last Name, Phone (optional), Email, Password, and Terms acceptance checkbox.
+
+--------------------------------------------------------------------------------
+4.5 COURSE BROWSE CATALOG (/browse - Browse.tsx)
+--------------------------------------------------------------------------------
+- Search bar with live keyword filtering.
+- Category filters: All, Data & Analytics, Programming, Artificial Intelligence.
+- Course cards showing title, duration, modules count, level, and "Enroll / Start" button.
+
+--------------------------------------------------------------------------------
+4.6 LEGAL PAGES (/privacy and /terms)
+--------------------------------------------------------------------------------
+- Standard, clean legal documents safeguarding user data, payment terms for pro passes, certificate integrity rules, and copyright notices.
+
+
+================================================================================
+5. EXACT DATA OBJECTS & JSON SCHEMAS
+================================================================================
+
+Below are the exact JavaScript/TypeScript data objects used in the code:
+
+```typescript
+// 1. SAMPLE INTERACTIVE QUESTIONS (Hero.tsx)
+export const SAMPLE_QUESTIONS = [
+  {
+    topic: "Excel Formulas",
+    label: "VLOOKUP vs XLOOKUP",
+    q: "Excel me VLOOKUP aur XLOOKUP me kya fark hai?",
+    a: "VLOOKUP sirf left-to-right lookup karta hai, jabki XLOOKUP kisi bhi direction me match dhund sakta hai aur exact matches by default deta hai!",
+    codeSnippet: "=XLOOKUP(E2, A2:A100, C2:C100, \"Not Found\")"
+  },
+  {
+    topic: "Python Core",
+    label: "List vs Tuple",
+    q: "Python me list aur tuple me main difference kya hai?",
+    a: "List mutable (changeable) hoti hai jaise [1, 2, 3], jabki tuple immutable hota hai. Tuples memory me faster aur safer hote hain!",
+    codeSnippet: "my_list = [10, 20] # mutable\nmy_tuple = (10, 20) # immutable"
+  },
+  {
+    topic: "AI Prompting",
+    label: "Accurate Prompts",
+    q: "AI Prompt ko accurate banane ka best formula kya hai?",
+    a: "Clear Role + Context + Constraints + Output Format = Guaranteed High Quality Output every time!",
+    codeSnippet: "System: \"Act as Lead Data Analyst.\""
+  }
+];
+
+// 2. ACADEMIC GRADING TIERS (Certificate.tsx)
+export const GRADING_TIERS = [
+  { range: "91–100%", grade: "O",  label: "Outstanding",   color: "from-amber-500 to-amber-600", textColor: "text-amber-600", bg: "bg-amber-50 border-amber-300" },
+  { range: "81–90%",  grade: "A+", label: "Excellent",     color: "from-indigo-600 to-purple-600", textColor: "text-indigo-600", bg: "bg-indigo-50 border-indigo-200" },
+  { range: "71–80%",  grade: "A",  label: "Very Good",     color: "from-blue-600 to-cyan-600",     textColor: "text-blue-600",   bg: "bg-blue-50 border-blue-200" },
+  { range: "61–70%",  grade: "B",  label: "Good",          color: "from-emerald-600 to-teal-600",  textColor: "text-emerald-600",bg: "bg-emerald-50 border-emerald-200" },
+  { range: "50–60%",  grade: "C",  label: "Satisfactory",  color: "from-slate-600 to-slate-800",  textColor: "text-slate-600",  bg: "bg-slate-50 border-slate-200" }
+];
+
+// 3. CORE COURSES LIST
+export const COURSES = [
+  {
+    id: "course-excel-basic",
+    title: "Excel for Beginners Masterclass",
+    category: "Data & Analytics",
+    difficulty: "Beginner",
+    estimated_hours: 8,
+    description: "Master essential desktop spreadsheet skills: data entry, auto-fill, formulas, conditional formatting, VLOOKUP/XLOOKUP, and pivot tables."
+  },
+  {
+    id: "course-python-101",
+    title: "Python Programming 101",
+    category: "Programming",
+    difficulty: "Beginner to Intermediate",
+    estimated_hours: 12,
+    description: "From zero coding experience to writing real automation scripts. Learn variables, loops, functions, lists, and object-oriented programming."
+  },
+  {
+    id: "course-ai-foundations",
+    title: "Generative AI & Prompt Engineering Foundations",
+    category: "AI & Future Tech",
+    difficulty: "All Levels",
+    estimated_hours: 6,
+    description: "Learn the art and science of communicating with Large Language Models. Master zero-shot, few-shot, and chain-of-thought prompting."
+  }
+];
+
+// 4. PRICING TIERS
+export const PRICING_TIERS = {
+  free: {
+    name: "Free Starter Plan",
+    price: "₹0",
+    frequency: "/forever",
+    features: [
+      "Core lessons & grid notes",
+      "In-browser interactive sandboxes",
+      "Basic Hinglish AI tutor access",
+      "End-of-module micro quizzes"
+    ]
+  },
+  pro: {
+    name: "Pro Mastery Pass",
+    price: "₹399",
+    frequency: "/month",
+    features: [
+      "All Excel, Python & AI Courses",
+      "Unlimited 24/7 AI Doubt Solver (Deep Explanations)",
+      "Advanced Code & Formula Sandboxes",
+      "Priority Support & Curriculum Updates",
+      "Custom AI-generated practice drills"
+    ]
+  },
+  certificate: {
+    name: "Official Verified Credential",
+    price: "₹99 - ₹199",
+    frequency: "/course",
+    features: [
+      "Comprehensive proctored final exam",
+      "Permanent Verification ID & Live QR Code",
+      "Print-ready high-resolution PDF download",
+      "1-Click LinkedIn verification credential"
+    ]
+  }
+};
+```
+
+
+================================================================================
+6. INSTRUCTIONS & MASTER PROMPT FOR TARGET AI GENERATOR
+================================================================================
+
+If you are handing this file to an AI (such as Gemini, Claude 3.5 Sonnet, GPT-4o,
+Cursor, or DeepSeek) to generate the complete website or landing page, use the
+following master prompt:
+
+"""
+You are an expert full-stack React and UI/UX engineer. Your task is to build the
+complete, high-converting Landing Page and public pages for LernexAI, using the exact
+specifications provided in `LANDING_PAGE_CONTEXT.txt`.
+
+KEY TECHNICAL & DESIGN GUIDELINES:
+1. Tech Stack: React (or Next.js), TypeScript, Tailwind CSS, Lucide React Icons, and Framer Motion.
+2. Design Language: Clean, modern, high-contrast light mode with rich Indigo/Purple gradient accents, subtle ambient floating orbs, and fine tech-grid background lines. Avoid generic low-effort clichés.
+3. Interactive Features:
+   - Build a working Interactive AI Tutor demo in the Hero section where visitors can click topic tabs or type their own question and receive an instant response.
+   - Build an interactive Certificate Preview where users can type their name, change the grade (O, A+, A, B, C), and see the canvas update in real-time.
+   - Include responsive Navbar with EN/HI language pill, mobile hamburger menu, and 1-Click Demo login trigger.
+   - Include comparison grids (Passive video courses vs LernexAI active sandboxes).
+4. Content & Copy: Use the exact headlines, body paragraphs, testimonials, and FAQs specified in `LANDING_PAGE_CONTEXT.txt`. Preserve the bilingual (English + natural Hinglish) tone.
+5. Provide clean, modular, production-ready code with proper TypeScript interfaces and zero missing imports.
+"""
+
+================================================================================
+END OF LERNEXAI LANDING PAGE CONTEXT SPECIFICATION DOCUMENT
+================================================================================

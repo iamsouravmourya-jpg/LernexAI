@@ -1,0 +1,42 @@
+svg_content = '''<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="tricolor" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FF9933" />
+      <stop offset="50%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#138808" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="125%" height="125%">
+      <feDropShadow dx="0" dy="16" stdDeviation="24" flood-color="#000000" flood-opacity="0.12" />
+    </filter>
+  </defs>
+
+  <!-- Base background (transparent / circular or rounded squircle) -->
+  <rect x="24" y="24" width="464" height="464" rx="104" fill="url(#tricolor)" filter="url(#shadow)" />
+  
+  <!-- Inner White Card -->
+  <rect x="42" y="42" width="428" height="428" rx="86" fill="#FFFFFF" />
+  
+  <!-- Subtle inner ambient glow -->
+  <circle cx="256" cy="256" r="160" fill="#000080" fill-opacity="0.03" />
+
+  <!-- Center Graduation Cap Emblem in Ashoka Blue (#000080) -->
+  <g transform="translate(106, 106) scale(12.5)" stroke="#000080" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Cap Diamond / Top -->
+    <path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z" fill="#000080" fill-opacity="0.08" />
+    <!-- Tassel Side Drop -->
+    <path d="M22 10v6" />
+    <circle cx="22" cy="16.5" r="0.6" fill="#000080" />
+    <!-- Cap Base / Crown -->
+    <path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5" fill="#000080" fill-opacity="0.05" />
+    <!-- Center Jewel / AI Sparkle Dot -->
+    <circle cx="12" cy="10" r="0.9" fill="#FF9933" stroke="#FF9933" stroke-width="0.5" />
+  </g>
+</svg>'''
+
+with open("public/lernexai-logo.svg", "w") as f:
+    f.write(svg_content)
+
+with open("public/favicon.svg", "w") as f:
+    f.write(svg_content)
+
+print("SVG created successfully")
