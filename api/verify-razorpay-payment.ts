@@ -1,2 +1,2 @@
-import handler from "./razorpay/verify-payment";
+import handler from "./razorpay/verify-payment.js";
 export default handler;
