@@ -359,15 +359,32 @@ Instructions for High-Quality Response:
    - Bold key terms (**key idea**) for quick scanning.
 4. Keep explanations practical, engaging, and directly applicable to the lesson.`;
 
-    // 1. Try Gemini API with valid models
-    if (gemini) {
+    // 1. PRIMARY: Try Groq API with 4-key round-robin rotation, failover, and rate-limit suppression
+    try {
+      const groqResult = await executeGroqChatWithRotation(
+        [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: question },
+        ],
+        req,
+        { maxTokens: 700, temperature: 0.3 }
+      );
+      if (groqResult?.text) {
+        answer = groqResult.text;
+      }
+    } catch (groqErr: any) {
+      console.warn("[AI Tutor] Groq key rotation notice:", groqErr?.message || groqErr);
+    }
+
+    // 2. SECONDARY: Try Gemini API with valid models if Groq didn't return an answer
+    if (!answer && gemini) {
       const geminiCandidateModels = [
-        "gemini-3.1-flash-lite",
-        "gemini-3.6-flash",
-        "gemini-3.8-flash",
-        "gemini-3.7-flash",
+        "gemini-2.5-flash",
+        "gemini-2.0-flash",
+        "gemini-1.5-flash",
         "gemini-flash-latest",
-        "gemini-3.1-pro-preview",
+        "gemini-3.8-flash",
+        "gemini-3.1-flash-lite",
       ];
       for (const modelName of geminiCandidateModels) {
         try {
@@ -385,37 +402,12 @@ Instructions for High-Quality Response:
             break;
           }
         } catch (geminiError: any) {
-          const is503 = geminiError?.status === 503 || geminiError?.code === 503 || String(geminiError?.message || "").includes("503");
-          if (is503) {
-            console.log(`[AI Tutor] Model ${modelName} high demand (503), switching to next model in cascade...`);
+          const isRateLimit = String(geminiError?.message || "").includes("resource_exhausted") || String(geminiError?.message || "").includes("429");
+          if (isRateLimit) {
+            console.log(`[AI Tutor] Gemini model ${modelName} quota exceeded, skipping...`);
           } else {
             console.warn(`[AI Tutor] Gemini model (${modelName}) failed:`, geminiError?.message || geminiError);
           }
-          await new Promise((resolve) => setTimeout(resolve, 150));
-        }
-      }
-    }
-
-    // 2. Try Groq API with 4-key round-robin rotation, failover, and rate-limit suppression
-    if (!answer) {
-      try {
-        const groqResult = await executeGroqChatWithRotation(
-          [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: question },
-          ],
-          req,
-          { maxTokens: 700, temperature: 0.3 }
-        );
-        if (groqResult?.text) {
-          answer = groqResult.text;
-        }
-      } catch (groqErr: any) {
-        if (groqErr?.isExhaustedRateLimit) {
-          console.warn("[AI Tutor] All 4 Groq Keys reached rate limit simultaneously.");
-          answer = "LernexAI is experiencing exceptionally high demand from free-tier users. Please try again in 2-3 minutes.";
-        } else {
-          console.warn("[AI Tutor] Groq key rotation error:", groqErr?.message || groqErr);
         }
       }
     }

@@ -1,43 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { GoogleGenAI } from "@google/genai";
 import crypto from "crypto";
-
-// Initialize Gemini Client safely using process.env
-function getGeminiClient(req?: VercelRequest) {
-  let headerKey = "";
-  if (req) {
-    const authHeader = (req.headers.authorization || "") as string;
-    if (authHeader && authHeader.startsWith("Bearer ")) {
-      const token = authHeader.substring(7).trim();
-      if (token.length > 10) headerKey = token;
-    }
-    headerKey =
-      headerKey ||
-      ((req.headers["x-gemini-api-key"] || req.headers["x-api-key"]) as string) ||
-      (req.body && typeof req.body === "object" && (req.body.apiKey || req.body.geminiApiKey)) ||
-      "";
-  }
-
-  const apiKey = (
-    headerKey ||
-    process.env.GEMINI_API_KEY ||
-    process.env.VITE_GEMINI_API_KEY ||
-    process.env.GOOGLE_API_KEY ||
-    ""
-  ).trim();
-
-  if (!apiKey) return null;
-
-  try {
-    return new GoogleGenAI({
-      apiKey,
-      httpOptions: { headers: { "User-Agent": "aistudio-build" } },
-    });
-  } catch (err) {
-    console.warn("[AI Tutor Vercel] Gemini SDK Init Notice:", err);
-    return null;
-  }
-}
 
 function generateSmartLocalAnswer(question: string, lessonTitle?: string, moduleTitle?: string): string {
   const q = (question || "").toLowerCase();
@@ -98,18 +60,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Setup CORS headers
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, x-gemini-api-key");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, x-groq-api-key");
 
   if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
 
   if (req.method === "GET") {
-    return res.status(200).json({ status: "active", endpoint: "ai-tutor" });
+    return res.status(200).json({ status: "active", endpoint: "ai-tutor-groq" });
   }
 
   try {
-    // Parse body safely whether it's an object or string
     let body = req.body;
     if (typeof body === "string") {
       try {
@@ -124,7 +85,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const isPro = Boolean(body.isPro || body.planType === "pro");
     const fallbackLimit = isPro ? 50 : 10;
 
-    // Handle History requests cleanly without 400 error
     if (action === "history") {
       return res.status(200).json({
         messages: [],
@@ -136,7 +96,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    // Extract message safely from multiple aliases
     let question = (
       body.message ||
       body.userMessage ||
@@ -147,7 +106,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ""
     );
 
-    // If history array is provided and message is empty, try to extract last user message
     if (!question && Array.isArray(body.history) && body.history.length > 0) {
       const lastUserItem = [...body.history].reverse().find(
         (m: any) => m.role === "user" || m.sender === "user"
@@ -157,7 +115,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // If still empty, provide a default prompt instead of failing with 400
     if (!question || typeof question !== "string" || !question.trim()) {
       question = "Hello AI Tutor, how can I learn effectively with LernexAI?";
     }
@@ -168,7 +125,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const moduleTitle = body.moduleTitle || "Core Concepts";
     const lessonContent = body.lessonContent || "";
 
-    // Build chat context with history if available
     let historyContext = "";
     if (Array.isArray(body.history) && body.history.length > 0) {
       const recent = body.history.slice(-6);
@@ -177,7 +133,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .join("\n");
     }
 
-    // 1. PRIMARY: Try Groq API with 4 Distributed Keys & Model Rotation
+    let answer = "";
+
+    // 1. Groq API with 4-Key Round-Robin Rotation and explicit await
     try {
       const GroqModule = await import("groq-sdk");
       const Groq = GroqModule.default || GroqModule;
@@ -217,12 +175,15 @@ Instructions:
 3. Structure your response using clear bold headings, bullet points, and clean code blocks wrapped in triple backticks with language specifiers.
 4. Keep explanations practical, engaging, and directly applicable to the lesson.`;
 
+      let keyIndex = 1;
       for (const key of uniqueGroqKeys) {
         try {
+          console.log(`[AI Tutor] Attempting Groq Key #${keyIndex} (${key.slice(0, 8)}...)`);
           const client = new Groq({ apiKey: key });
 
           for (const modelName of groqModels) {
             try {
+              console.log(`[AI Tutor] Calling Groq model: ${modelName} with Key #${keyIndex}`);
               const completion = await client.chat.completions.create({
                 messages: [
                   { role: "system", content: systemPrompt },
@@ -236,64 +197,33 @@ Instructions:
 
               const reply = completion.choices?.[0]?.message?.content?.trim();
               if (reply) {
+                console.log(`[AI Tutor] Success with Groq Key #${keyIndex} and model ${modelName}`);
                 answer = reply;
                 break;
               }
             } catch (modelErr: any) {
-              const msg = modelErr?.message || "";
-              if (msg.includes("429") || msg.includes("rate_limit")) {
-                // Key hit rate limit, break model loop to try next key in pool
+              const msg = modelErr?.message || String(modelErr);
+              console.warn(`[AI Tutor] Groq Key #${keyIndex} model (${modelName}) error:`, msg);
+              if (msg.includes("429") || msg.includes("rate_limit") || msg.includes("401") || msg.includes("unauthorized")) {
+                // Break model loop to immediately try next key in pool
                 break;
               }
             }
           }
 
           if (answer) break;
-        } catch {
-          // Try next Groq key in pool
+        } catch (keyErr: any) {
+          console.warn(`[AI Tutor] Groq Key #${keyIndex} initialization failed:`, keyErr?.message);
         }
+        keyIndex++;
       }
-    } catch {
-      // Groq import or network fallback
+    } catch (groqRootErr: any) {
+      console.warn("[AI Tutor] Groq controller error:", groqRootErr?.message);
     }
 
-    // 2. SECONDARY FALLBACK: Gemini API
+    // 2. Fallback to Smart Local Answer if Groq keys are exhausted or offline
     if (!answer) {
-      const gemini = getGeminiClient(req);
-      if (gemini) {
-        const candidateModels = [
-          "gemini-2.5-flash",
-          "gemini-2.0-flash",
-          "gemini-1.5-flash",
-          "gemini-flash-latest",
-          "gemini-3.8-flash",
-          "gemini-3.1-flash-lite",
-        ];
-
-        const fullPrompt = `${historyContext ? `Previous Conversation:\n${historyContext}\n\n` : ""}Current Student Question: ${question}`;
-
-        for (const modelName of candidateModels) {
-          try {
-            const response = await gemini.models.generateContent({
-              model: modelName,
-              contents: fullPrompt,
-              config: {
-                systemInstruction: `You are an expert, encouraging AI Tutor on LernexAI for the lesson "${lessonTitle}" (${moduleTitle}). ${lessonContent ? `Lesson Content Context: ${lessonContent.slice(0, 1500)}` : ""}. Answer clearly using structured Markdown, code examples with language tags, and friendly explanations in English or Hinglish if requested.`,
-              },
-            });
-
-            if (response?.text && response.text.trim()) {
-              answer = response.text.trim();
-              break;
-            }
-          } catch (modelErr: any) {
-            console.warn(`[AI Tutor Vercel] Gemini (${modelName}) warning:`, modelErr?.message);
-          }
-        }
-      }
-    }
-
-    if (!answer) {
+      console.log("[AI Tutor] All Groq keys exhausted or offline. Using smart local fallback answer.");
       answer = generateSmartLocalAnswer(question, lessonTitle, moduleTitle);
     }
 
@@ -333,3 +263,4 @@ Instructions:
     });
   }
 }
+
