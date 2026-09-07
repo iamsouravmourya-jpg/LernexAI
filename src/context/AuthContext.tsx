@@ -34,6 +34,7 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const allowDemoMode = import.meta.env.DEV;
 
 async function fetchUserProfile(supabaseUser: SupabaseUser): Promise<User> {
   try {
@@ -141,13 +142,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // 1. Check for stored demo session first
       try {
-        const storedDemo = localStorage.getItem("lernex_demo_user");
+        const storedDemo = allowDemoMode ? localStorage.getItem("lernex_demo_user") : null;
         if (storedDemo) {
           const parsed = JSON.parse(storedDemo);
           setUser(parsed);
           clearTimeout(timeoutId);
           setLoading(false);
           return;
+        }
+        if (!allowDemoMode) {
+          localStorage.removeItem("lernex_demo_user");
         }
       } catch (e) {
         console.warn("Could not read stored demo user:", e);
@@ -215,7 +219,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       trimmedEmail === "demo@example.com" ||
       trimmedEmail === "demo@test.com" ||
       password === "demo1234" ||
-      !isSupabaseConfigured
+      (!isSupabaseConfigured && allowDemoMode)
     ) {
       const demoProfile: User = {
         ...DEMO_USER,
@@ -244,7 +248,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signup = async (email: string, password: string, firstName?: string, lastName?: string, phone?: string) => {
     const trimmedEmail = email.trim().toLowerCase();
 
-    if (!isSupabaseConfigured || trimmedEmail === "demo@lernexai.com") {
+    if (trimmedEmail === "demo@lernexai.com" || (!isSupabaseConfigured && allowDemoMode)) {
       const customUser: User = {
         id: `user-${Date.now()}`,
         email: trimmedEmail,
@@ -307,9 +311,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loginWithGoogle = async () => {
     if (!isSupabaseConfigured) {
-      await loginAsDemo();
-      return;
+      if (allowDemoMode) {
+        await loginAsDemo();
+        return;
+      }
+      throw new Error("Supabase is not configured for this deployment. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Vercel Production environment variables.");
     }
+
+    localStorage.removeItem("lernex_demo_user");
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
