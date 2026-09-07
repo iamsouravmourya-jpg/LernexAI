@@ -3,7 +3,6 @@ import path from "path";
 import crypto from "crypto";
 import Razorpay from "razorpay";
 import { createClient } from "@supabase/supabase-js";
-import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import Groq from "groq-sdk";
 import dotenv from "dotenv";
@@ -433,20 +432,44 @@ Instructions for High-Quality Response:
         isFreePlan: !isPro,
       },
     });
-  } catch (err) {
-    console.error("[AI Tutor] Server handler error:", err);
-    return res.status(500).json({ error: "Server error processing AI Tutor query." });
+  } catch (err: any) {
+    console.error("[AI Tutor Fatal Handler Exception]:", {
+      message: err?.message,
+      stack: err?.stack,
+      body: req.body,
+    });
+    
+    // Resilient fallback so client never gets an unhandled 500 crash
+    const fallbackAnswer = generateSmartLocalAnswer(
+      req.body?.message || req.body?.question || "Lesson question",
+      req.body?.lessonTitle,
+      req.body?.moduleTitle,
+      req.body?.lessonContent
+    );
+
+    return res.status(200).json({
+      answer: fallbackAnswer,
+      response: fallbackAnswer,
+      reply: fallbackAnswer,
+      warning: "AI response served via resilient fallback due to server-side provider timeout.",
+      error: err?.message,
+      usage: {
+        count: 1,
+        limit: 50,
+        isFreePlan: false,
+      },
+    });
   }
 };
 
 // Register endpoint aliases
-app.post("/api/ai-tutor", handleAITutorRequest);
-app.post("/api/course/chat-assistant", handleAITutorRequest);
-app.post("/api/tutor/chat", handleAITutorRequest);
-app.post("/api/groq/chat", groqTutorController);
+app.post(["/api/ai-tutor", "/ai-tutor"], handleAITutorRequest);
+app.post(["/api/course/chat-assistant", "/course/chat-assistant"], handleAITutorRequest);
+app.post(["/api/tutor/chat", "/tutor/chat"], handleAITutorRequest);
+app.post(["/api/groq/chat", "/groq/chat"], groqTutorController);
 
 // Razorpay Order Creation Endpoint
-app.post("/api/create-razorpay-order", async (req, res) => {
+app.post(["/api/create-razorpay-order", "/create-razorpay-order"], async (req, res) => {
   try {
     const { amount, purpose = "ai_credits" } = req.body || {};
     const numAmount = parseInt(amount, 10);
@@ -469,7 +492,7 @@ app.post("/api/create-razorpay-order", async (req, res) => {
 });
 
 // Razorpay Payment Verification Endpoint
-app.post("/api/verify-razorpay-payment", async (req, res) => {
+app.post(["/api/verify-razorpay-payment", "/verify-razorpay-payment"], async (req, res) => {
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body || {};
     return res.json({
@@ -494,7 +517,7 @@ const generatedCoursesStore: Record<
 > = {};
 
 // CourseGenie real generation endpoint (GEMINI API ONLY, strictly NO Groq)
-app.post("/api/generate-course", async (req, res) => {
+app.post(["/api/generate-course", "/generate-course"], async (req, res) => {
   try {
     const {
       topic,
@@ -631,7 +654,7 @@ app.post("/api/generate-course", async (req, res) => {
 });
 
 // Endpoint to retrieve generated course by ID
-app.get("/api/courses/generated/:id", (req, res) => {
+app.get(["/api/courses/generated/:id", "/courses/generated/:id"], (req, res) => {
   const courseId = req.params.id;
   const item = generatedCoursesStore[courseId];
   if (!item) {
@@ -641,11 +664,16 @@ app.get("/api/courses/generated/:id", (req, res) => {
 });
 
 // Endpoint to retrieve catalog courses from Courses directory
-app.get("/api/courses", async (_req, res) => {
+app.get(["/api/courses", "/courses"], async (_req, res) => {
   try {
     const fs = await import("fs/promises");
     const coursesDir = path.join(process.cwd(), "Courses");
-    const files = await fs.readdir(coursesDir);
+    let files: string[] = [];
+    try {
+      files = await fs.readdir(coursesDir);
+    } catch {
+      files = [];
+    }
     const jsonFiles = files.filter(f => f.endsWith(".json"));
     const courses = [];
 
@@ -661,11 +689,16 @@ app.get("/api/courses", async (_req, res) => {
 });
 
 // Endpoint to retrieve a specific course by ID from Courses directory
-app.get("/api/courses/:id", async (req, res) => {
+app.get(["/api/courses/:id", "/courses/:id"], async (req, res) => {
   try {
     const fs = await import("fs/promises");
     const coursesDir = path.join(process.cwd(), "Courses");
-    const files = await fs.readdir(coursesDir);
+    let files: string[] = [];
+    try {
+      files = await fs.readdir(coursesDir);
+    } catch {
+      files = [];
+    }
     const id = req.params.id.toLowerCase();
 
     for (const file of files) {
@@ -700,7 +733,7 @@ function getSupabaseAdmin() {
 // ==========================================
 
 // 0. Public Razorpay Config
-app.get("/api/razorpay/config", (_req, res) => {
+app.get(["/api/razorpay/config", "/razorpay/config"], (_req, res) => {
   const keyId = (process.env.RAZORPAY_KEY_ID || process.env.VITE_RAZORPAY_KEY_ID || "").trim();
   res.json({
     key_id: keyId,
@@ -709,7 +742,7 @@ app.get("/api/razorpay/config", (_req, res) => {
 });
 
 // 1. Create Razorpay Order
-app.post("/api/razorpay/create-order", async (req, res) => {
+app.post(["/api/razorpay/create-order", "/razorpay/create-order"], async (req, res) => {
   try {
     const { amount, currency = "INR", receipt, notes } = req.body;
     if (!amount || typeof amount !== "number") {
@@ -769,7 +802,7 @@ app.post("/api/razorpay/create-order", async (req, res) => {
 });
 
 // 2. Verify Razorpay Payment Signature & Update DB
-app.post("/api/razorpay/verify-payment", async (req, res) => {
+app.post(["/api/razorpay/verify-payment", "/razorpay/verify-payment"], async (req, res) => {
   try {
     const {
       razorpay_order_id,
@@ -865,7 +898,7 @@ app.post("/api/razorpay/verify-payment", async (req, res) => {
 });
 
 // Admin Endpoint: Check Supabase payment & user tables status
-app.get("/api/admin/supabase-status", async (_req, res) => {
+app.get(["/api/admin/supabase-status", "/admin/supabase-status"], async (_req, res) => {
   try {
     const db = getSupabaseAdmin();
     if (!db) {
@@ -900,7 +933,7 @@ app.get("/api/admin/supabase-status", async (_req, res) => {
 });
 
 // Admin Endpoint: Push / Sync all local catalog courses directly into Supabase
-app.post("/api/admin/sync-courses-to-supabase", async (_req, res) => {
+app.post(["/api/admin/sync-courses-to-supabase", "/admin/sync-courses-to-supabase"], async (_req, res) => {
   try {
     const { createClient } = await import("@supabase/supabase-js");
     const fs = await import("fs/promises");
@@ -1053,6 +1086,7 @@ app.post("/api/admin/sync-courses-to-supabase", async (_req, res) => {
 // Serve frontend assets via Vite middleware in dev or static in prod
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",

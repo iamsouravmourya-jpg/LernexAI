@@ -1,11 +1,11 @@
-import testQuick from '../../Courses/test-quick.json';
-import test1 from '../../Courses/test-1.json';
-import test2 from '../../Courses/test-2.json';
-import test3 from '../../Courses/test-3.json';
-import test4 from '../../Courses/test-4.json';
-import test5 from '../../Courses/test-5.json';
-import test6 from '../../Courses/test-6.json';
-import test7 from '../../Courses/test-7.json';
+import testQuick from './data/test-quick.json';
+import test1 from './data/test-1.json';
+import test2 from './data/test-2.json';
+import test3 from './data/test-3.json';
+import test4 from './data/test-4.json';
+import test5 from './data/test-5.json';
+import test6 from './data/test-6.json';
+import test7 from './data/test-7.json';
 import type { Course } from '../lib/course';
 
 export const TEST_COURSES: Course[] = [

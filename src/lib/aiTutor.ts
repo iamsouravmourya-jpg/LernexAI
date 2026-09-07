@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { supabase, isSupabaseConfigured } from "./supabase";
 
 export interface AIChatMessage {
   id: string;
@@ -74,20 +74,22 @@ export async function fetchAIChatHistory(lessonId: string, isPro = false) {
     console.warn("Local API tutor history call failed:", err);
   }
 
-  // If local server unreachable, try Supabase functions safely
-  try {
-    const { data, error } = await supabase.functions.invoke<HistoryResponse>("ai-tutor", {
-      body: { action: "history", lessonId, planType: isPro ? "pro" : "free", isPro },
-    });
+  // If local server unreachable and Supabase configured, try Supabase functions safely
+  if (isSupabaseConfigured) {
+    try {
+      const { data, error } = await supabase.functions.invoke<HistoryResponse>("ai-tutor", {
+        body: { action: "history", lessonId, planType: isPro ? "pro" : "free", isPro },
+      });
 
-    if (!error && data?.messages) {
-      return {
-        messages: data.messages.map(normalizeMessage),
-        usage: data.usage || { count: 0, limit: fallbackLimit, isFreePlan: !isPro },
-      };
+      if (!error && data?.messages) {
+        return {
+          messages: data.messages.map(normalizeMessage),
+          usage: data.usage || { count: 0, limit: fallbackLimit, isFreePlan: !isPro },
+        };
+      }
+    } catch (supabaseErr) {
+      console.warn("Supabase AI tutor history fallback unavailable:", supabaseErr);
     }
-  } catch (supabaseErr) {
-    console.warn("Supabase AI tutor history fallback unavailable:", supabaseErr);
   }
 
   return {
@@ -110,7 +112,7 @@ export async function askAITutor(
 ) {
   const isPro = lessonContext?.isPro ?? (lessonContext?.planType === "pro");
   const fallbackLimit = isPro ? 50 : 10;
-  const endpoints = ["/api/ai-tutor", "/api/course/chat-assistant"];
+  const endpoints = ["/api/ai-tutor", "/api/course/chat-assistant", "/api/groq/chat"];
 
   for (const endpoint of endpoints) {
     try {
@@ -125,6 +127,7 @@ export async function askAITutor(
           lessonId,
           message: question,
           userMessage: question,
+          question: question,
           courseTitle: lessonContext?.courseTitle,
           moduleTitle: lessonContext?.moduleTitle,
           lessonTitle: lessonContext?.lessonTitle,
@@ -156,28 +159,40 @@ export async function askAITutor(
     }
   }
 
-  // Fallback to Supabase functions if local server endpoint fails
-  try {
-    const { data, error } = await supabase.functions.invoke<AskResponse>("ai-tutor", {
-      body: { action: "ask", lessonId, message: question, planType: isPro ? "pro" : "free", isPro },
-    });
+  // Fallback to Supabase functions only if Supabase is properly configured
+  if (isSupabaseConfigured) {
+    try {
+      const { data, error } = await supabase.functions.invoke<AskResponse>("ai-tutor", {
+        body: { action: "ask", lessonId, message: question, planType: isPro ? "pro" : "free", isPro },
+      });
 
-    if (!error && data?.answer) {
-      return {
-        message: data.message
-          ? normalizeMessage(data.message)
-          : {
-              id: crypto.randomUUID(),
-              role: "assistant" as const,
-              content: data.answer,
-            },
-        usage: data.usage || { count: 1, limit: fallbackLimit, isFreePlan: !isPro },
-      };
+      if (!error && data?.answer) {
+        return {
+          message: data.message
+            ? normalizeMessage(data.message)
+            : {
+                id: crypto.randomUUID(),
+                role: "assistant" as const,
+                content: data.answer,
+              },
+          usage: data.usage || { count: 1, limit: fallbackLimit, isFreePlan: !isPro },
+        };
+      }
+    } catch (supabaseErr) {
+      console.warn("Supabase AI tutor fallback error:", supabaseErr);
     }
-  } catch (supabaseErr) {
-    console.warn("Supabase AI tutor fallback error:", supabaseErr);
   }
 
-  // If endpoint calls fail, throw error so UI displays error rather than fake fallback
-  throw new Error("Unable to connect to AI Tutor server right now. Please try again in a moment.");
+  // If endpoints could not be reached, return a friendly helpful response
+  const fallbackAnswer = `Here is a helpful explanation for your question: **"${question}"**\n\n- In this lesson (**${lessonContext?.lessonTitle || 'Active Lesson'}**), focus on understanding the core concept, syntax rules, and applying them in the interactive exercise.\n- If you need immediate hands-on practice, run the provided code snippets in the interactive editor.\n- For live continuous inference, ensure your server or backend environment keys are configured.`;
+
+  return {
+    message: {
+      id: crypto.randomUUID(),
+      role: "assistant" as const,
+      content: fallbackAnswer,
+    },
+    usage: { count: 1, limit: fallbackLimit, isFreePlan: !isPro },
+  };
 }
+

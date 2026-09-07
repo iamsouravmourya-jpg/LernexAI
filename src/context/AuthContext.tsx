@@ -131,12 +131,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const initializeAuth = async () => {
+      // Fast fallback timeout so loading never hangs
+      const timeoutId = setTimeout(() => {
+        setLoading((prev) => {
+          if (prev) return false;
+          return prev;
+        });
+      }, 1200);
+
       // 1. Check for stored demo session first
       try {
         const storedDemo = localStorage.getItem("lernex_demo_user");
         if (storedDemo) {
           const parsed = JSON.parse(storedDemo);
           setUser(parsed);
+          clearTimeout(timeoutId);
           setLoading(false);
           return;
         }
@@ -145,6 +154,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (!isSupabaseConfigured) {
+        clearTimeout(timeoutId);
         setUser(null);
         setLoading(false);
         return;
@@ -162,6 +172,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.error("Auth initialization failed", error);
         setUser(null);
       } finally {
+        clearTimeout(timeoutId);
         setLoading(false);
       }
     };
