@@ -1071,4 +1071,9 @@ async function startServer() {
   });
 }
 
-startServer();
+// Only auto-listen if not running as a Vercel/serverless function
+if (!process.env.VERCEL && !process.env.AWS_LAMBDA_FUNCTION_NAME) {
+  startServer();
+}
+
+export default app;
