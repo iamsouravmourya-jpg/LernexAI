@@ -7,7 +7,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
  * 1. Strictly uses `process.env` (Node.js runtime).
  * 2. Uses `process.env.SUPABASE_SERVICE_ROLE_KEY` (secret key without VITE_ prefix)
  *    and `process.env.VITE_SUPABASE_URL` (or `process.env.SUPABASE_URL`).
- * 3. Never uses hardcoded 'example.supabase.co' or placeholder values.
+ * 3. Never uses hardcoded placeholder hosts or values.
  * 4. Fails safely and gracefully if variables are missing during build or runtime.
  */
 export function getBackendSupabaseAdmin(): SupabaseClient | null {
@@ -17,17 +17,11 @@ export function getBackendSupabaseAdmin(): SupabaseClient | null {
     ''
   ).trim();
 
-  const serviceRoleKey = (
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.SUPABASE_ANON_KEY ||
-    process.env.VITE_SUPABASE_ANON_KEY ||
-    ''
-  ).trim();
+  const serviceRoleKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
 
   const isValidUrl =
     Boolean(supabaseUrl) &&
     supabaseUrl.startsWith('http') &&
-    !supabaseUrl.includes('example.supabase.co') &&
     !supabaseUrl.includes('placeholder');
 
   const isValidKey =

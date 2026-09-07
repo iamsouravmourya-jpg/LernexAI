@@ -102,7 +102,6 @@ function getGroqClientsList(req?: express.Request): Groq[] {
     process.env.GROQ_API_KEY,
     process.env.GROQ_KEY,
     process.env.VITE_GROQ_API_KEY,
-    "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",
   ]
     .map((k) => (k || "").trim())
     .filter((k) => k.length > 10);
@@ -863,7 +862,7 @@ app.get(["/api/courses/:id", "/courses/:id"], async (req, res) => {
 // Helper for Supabase Admin client
 function getSupabaseAdmin() {
   const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) return null;
   return createClient(url, key);
 }
@@ -1079,7 +1078,7 @@ app.post(["/api/admin/sync-courses-to-supabase", "/admin/sync-courses-to-supabas
     const fs = await import("fs/promises");
 
     const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!url || !serviceKey) {
       return res.status(400).json({ error: "Supabase URL or Key not configured in environment variables." });

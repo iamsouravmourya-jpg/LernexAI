@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 
 export default function AuthCallback() {
@@ -11,36 +10,85 @@ export default function AuthCallback() {
     let active = true;
 
     async function finishAuth() {
-      const url = new URL(window.location.href);
-      const code = url.searchParams.get("code");
-
-      if (code) {
-        const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-        if (!active) return;
+      try {
+        console.log("Auth callback: Processing OAuth callback");
+        
+        // Get current URL
+        const url = new URL(window.location.href);
+        
+        // Check for error in URL
+        const error = url.searchParams.get("error");
+        const errorDescription = url.searchParams.get("error_description");
+        
         if (error) {
-          setMessage(error.message || "Could not complete sign in.");
-          setTimeout(() => setLocation("/auth"), 1500);
-          return;
+          console.error("OAuth error:", error, errorDescription);
+          
+          // If it's a database error, we can still proceed with the session
+          if (errorDescription?.includes("Database error")) {
+            console.log("Database error detected, but attempting to continue with session");
+            setMessage("Completing sign in (skipping database save)…");
+          } else {
+            setMessage(errorDescription || "Authentication failed");
+            setTimeout(() => setLocation("/auth"), 2000);
+            return;
+          }
         }
 
-        if (data.session) {
+        // Give Supabase time to process the OAuth callback
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // Check for session
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (!active) return;
+        
+        if (sessionError) {
+          console.error("Session error:", sessionError);
+          setMessage(sessionError.message || "Could not complete sign in");
+          setTimeout(() => setLocation("/auth"), 2000);
+          return;
+        }
+        
+        if (session) {
+          console.log("Auth callback: Session found, redirecting to dashboard");
+          console.log("Session user:", session.user);
+          
+          // Try to create user profile if it doesn't exist
+          try {
+            const { error: profileError } = await supabase
+              .from('users')
+              .upsert({
+                id: session.user.id,
+                email: session.user.email,
+                first_name: session.user.user_metadata?.full_name?.split(' ')[0] || null,
+                last_name: session.user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || null,
+                plan_type: 'free',
+                created_at: new Date().toISOString()
+              }, { onConflict: 'id' });
+            
+            if (profileError) {
+              console.warn("Could not save user profile:", profileError);
+              // Don't fail the auth flow if profile save fails
+            } else {
+              console.log("User profile saved successfully");
+            }
+          } catch (profileError) {
+            console.warn("Profile save error:", profileError);
+            // Don't fail the auth flow
+          }
+          
           if (!active) return;
           setLocation("/dashboard", { replace: true });
           return;
         }
+
+        console.log("Auth callback: No session found after delay");
+        setMessage("Session not found. Redirecting back to sign in…");
+        setTimeout(() => setLocation("/auth"), 2000);
+      } catch (error) {
+        console.error("Auth callback error:", error);
+        setMessage("An error occurred during sign in");
+        setTimeout(() => setLocation("/auth"), 2000);
       }
-
-      const { data } = await supabase.auth.getSession();
-      if (!active) return;
-
-      if (data.session) {
-        if (!active) return;
-        setLocation("/dashboard", { replace: true });
-        return;
-      }
-
-      setMessage("Session not found. Redirecting back to sign in…");
-      setTimeout(() => setLocation("/auth"), 1500);
     }
 
     void finishAuth();

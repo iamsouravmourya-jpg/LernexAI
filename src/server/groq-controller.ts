@@ -41,16 +41,13 @@ function getActiveGroqKeyPool(req?: Request): string[] {
     process.env.GROQ_API_KEY,
     process.env.GROQ_KEY,
     process.env.VITE_GROQ_API_KEY,
-    "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",
   ]
     .map((k) => (k || "").trim())
     .filter((k) => k.length > 10 && k.startsWith("gsk_"));
 
   // De-duplicate while preserving configuration priority
   const uniquePool = Array.from(new Set(candidateKeys));
-  return uniquePool.length > 0
-    ? uniquePool
-    : ["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"];
+  return uniquePool;
 }
 
 /**

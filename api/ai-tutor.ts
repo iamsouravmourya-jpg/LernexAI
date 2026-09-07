@@ -1,6 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import crypto from "crypto";
 
+let groqKeyRotationIndex = 0;
+
 function generateSmartLocalAnswer(question: string, lessonTitle?: string, moduleTitle?: string): string {
   const q = (question || "").toLowerCase();
   const contextHeader = lessonTitle ? `**Lesson:** ${lessonTitle} (${moduleTitle || "Fundamentals"})\n\n` : "";
@@ -135,27 +137,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     let answer = "";
 
-    // 1. Groq API with 4-Key Round-Robin Rotation and explicit await
+    // 1. Groq API with 4-key round-robin rotation and explicit await
     try {
       const GroqModule = await import("groq-sdk");
       const Groq = GroqModule.default || GroqModule;
 
-      const headerKey = (req.headers["x-groq-api-key"] as string) || "";
       const groqCandidateKeys = [
-        headerKey,
         process.env.GROQ_API_KEY_1,
         process.env.GROQ_API_KEY_2,
         process.env.GROQ_API_KEY_3,
         process.env.GROQ_API_KEY_4,
-        process.env.GROQ_API_KEY,
-        process.env.GROQ_KEY,
-        process.env.VITE_GROQ_API_KEY,
-        "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",
       ]
         .map((k) => (k || "").trim())
         .filter((k) => k.length > 10 && k.startsWith("gsk_"));
 
       const uniqueGroqKeys = Array.from(new Set(groqCandidateKeys));
+      const startIndex = uniqueGroqKeys.length > 0 ? groqKeyRotationIndex % uniqueGroqKeys.length : 0;
+      if (uniqueGroqKeys.length > 0) {
+        groqKeyRotationIndex = (startIndex + 1) % uniqueGroqKeys.length;
+      }
 
       const groqModels = [
         process.env.GROQ_MODEL,
@@ -175,8 +175,9 @@ Instructions:
 3. Structure your response using clear bold headings, bullet points, and clean code blocks wrapped in triple backticks with language specifiers.
 4. Keep explanations practical, engaging, and directly applicable to the lesson.`;
 
-      let keyIndex = 1;
-      for (const key of uniqueGroqKeys) {
+      for (let offset = 0; offset < uniqueGroqKeys.length; offset++) {
+        const keyIndex = ((startIndex + offset) % uniqueGroqKeys.length) + 1;
+        const key = uniqueGroqKeys[keyIndex - 1];
         try {
           console.log(`[AI Tutor] Attempting Groq Key #${keyIndex} (${key.slice(0, 8)}...)`);
           const client = new Groq({ apiKey: key });
@@ -215,7 +216,6 @@ Instructions:
         } catch (keyErr: any) {
           console.warn(`[AI Tutor] Groq Key #${keyIndex} initialization failed:`, keyErr?.message);
         }
-        keyIndex++;
       }
     } catch (groqRootErr: any) {
       console.warn("[AI Tutor] Groq controller error:", groqRootErr?.message);

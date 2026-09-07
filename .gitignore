@@ -40,3 +40,6 @@ build
 # Temporary / Cache
 .vercel
 .turbo
+
+# Supabase local project metadata
+supabase/.temp/

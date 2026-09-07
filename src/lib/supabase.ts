@@ -6,7 +6,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
  * Rules:
  * 1. Strictly uses Vite's `import.meta.env.VITE_*` syntax.
  * 2. Reads `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
- * 3. Never hardcodes 'example.supabase.co'.
+ * 3. Never hardcodes a placeholder host.
  * 4. Checks configuration validity so it never crashes the client if variables are absent.
  */
 const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL || '').trim();
@@ -17,7 +17,6 @@ export const isSupabaseConfigured = Boolean(
   supabaseAnonKey &&
   supabaseUrl.startsWith('http') &&
   !supabaseUrl.includes('placeholder') &&
-  !supabaseUrl.includes('example.supabase.co') &&
   !supabaseAnonKey.includes('placeholder') &&
   supabaseAnonKey.length > 20
 );
