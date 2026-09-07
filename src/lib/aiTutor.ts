@@ -108,6 +108,7 @@ export async function askAITutor(
     lessonContent?: string;
     isPro?: boolean;
     planType?: string;
+    history?: Array<{ role: "user" | "assistant"; content: string }>;
   }
 ) {
   const isPro = lessonContext?.isPro ?? (lessonContext?.planType === "pro");
@@ -127,7 +128,9 @@ export async function askAITutor(
           lessonId,
           message: question,
           userMessage: question,
+          prompt: question,
           question: question,
+          history: lessonContext?.history || [],
           courseTitle: lessonContext?.courseTitle,
           moduleTitle: lessonContext?.moduleTitle,
           lessonTitle: lessonContext?.lessonTitle,

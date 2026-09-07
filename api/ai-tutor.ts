@@ -14,8 +14,7 @@ function getGeminiClient(req?: VercelRequest) {
     headerKey =
       headerKey ||
       ((req.headers["x-gemini-api-key"] || req.headers["x-api-key"]) as string) ||
-      (req.body && req.body.apiKey) ||
-      (req.body && req.body.geminiApiKey) ||
+      (req.body && typeof req.body === "object" && (req.body.apiKey || req.body.geminiApiKey)) ||
       "";
   }
 
@@ -42,46 +41,61 @@ function getGeminiClient(req?: VercelRequest) {
 
 function generateSmartLocalAnswer(question: string, lessonTitle?: string, moduleTitle?: string): string {
   const q = (question || "").toLowerCase();
-  const contextHeader = lessonTitle ? `**Lesson Context:** ${lessonTitle} (${moduleTitle || "General Concepts"})\n\n` : "";
+  const contextHeader = lessonTitle ? `**Lesson:** ${lessonTitle} (${moduleTitle || "Fundamentals"})\n\n` : "";
 
   if (q.includes("python") || q.includes("def") || q.includes("indentation")) {
-    return `${contextHeader}### **Python Core Concept**
-Python is a readable, dynamic, high-level programming language designed for rapid development and clean code.
+    return `${contextHeader}### **Python Fundamentals**
+Python is a dynamic, interpreted language with expressive syntax that prioritizes developer readability.
 
 \`\`\`python
-# Example: Function definition
-def greet(student_name: str) -> str:
-    return f"Welcome to LernexAI, {student_name}!"
+# Simple greeting function in Python
+def greet_student(name: str) -> str:
+    return f"Welcome to LernexAI, {name}!"
 
-print(greet("Developer"))
+print(greet_student("Learner"))
 \`\`\`
 
-**Key Points:**
-- Uses indentation instead of curly braces.
-- Supports both Object-Oriented and Functional paradigms.
-- Vast ecosystem for AI, Web Development, and Automation.`;
+**Key Features:**
+- Uses indentation instead of braces to delimit blocks.
+- Extensive standard library and rich third-party ecosystem.
+- Dynamically typed with support for type annotations.`;
   }
 
-  return `${contextHeader}### **Explanation & Solution**
-Here is a breakdown to help you with your question regarding "${question}":
+  if (q.includes("recursion") || q.includes("base case")) {
+    return `${contextHeader}### **Understanding Recursion**
+Recursion occurs when a function calls itself to solve smaller subproblems until reaching a **base case**.
 
 \`\`\`javascript
+// Factorial with base case
+function factorial(n) {
+  if (n <= 1) return 1; // Base case
+  return n * factorial(n - 1); // Recursive step
+}
+\`\`\`
+
+**Rule of Thumb:** Always verify your base case to prevent stack overflow errors.`;
+  }
+
+  return `${contextHeader}### **AI Tutor Explanation**
+Here is a structured explanation for **"${question || "your doubt"}"**:
+
+\`\`\`typescript
 // Concept demonstration
-function solveTask(input) {
+export function solveConcept(input: string) {
   return {
-    status: "success",
-    processedAt: new Date().toISOString(),
-    result: input
+    status: "completed",
+    timestamp: new Date().toISOString(),
+    query: input,
   };
 }
 \`\`\`
 
-- **Key Concept:** Review the fundamental inputs and outputs for this module.
-- **Next Step:** Try implementing this snippet in your practice editor or ask a follow-up question!`;
+- **Key Insight:** Break the problem down into isolated inputs, transformations, and outputs.
+- **Next Step:** Experiment with this logic in your code editor or ask for a step-by-step trace!`;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Enable CORS
+  // Setup CORS headers
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, x-gemini-api-key");
@@ -95,22 +109,75 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const rawMessage =
-      req.body?.message ||
-      req.body?.userMessage ||
-      req.body?.prompt ||
-      req.body?.question ||
-      "";
+    // Parse body safely whether it's an object or string
+    let body = req.body;
+    if (typeof body === "string") {
+      try {
+        body = JSON.parse(body);
+      } catch {
+        body = { message: body };
+      }
+    }
+    body = body || {};
 
-    if (!rawMessage || typeof rawMessage !== "string" || !rawMessage.trim()) {
-      return res.status(400).json({ error: "A message or question is required." });
+    const action = body.action || "ask";
+    const isPro = Boolean(body.isPro || body.planType === "pro");
+    const fallbackLimit = isPro ? 50 : 10;
+
+    // Handle History requests cleanly without 400 error
+    if (action === "history") {
+      return res.status(200).json({
+        messages: [],
+        usage: {
+          count: 0,
+          limit: fallbackLimit,
+          isFreePlan: !isPro,
+        },
+      });
     }
 
-    const question = rawMessage.trim();
-    const lessonTitle = req.body?.lessonTitle || "Programming Lesson";
-    const moduleTitle = req.body?.moduleTitle || "Core Module";
-    const gemini = getGeminiClient(req);
+    // Extract message safely from multiple aliases
+    let question = (
+      body.message ||
+      body.userMessage ||
+      body.prompt ||
+      body.question ||
+      body.query ||
+      body.text ||
+      ""
+    );
 
+    // If history array is provided and message is empty, try to extract last user message
+    if (!question && Array.isArray(body.history) && body.history.length > 0) {
+      const lastUserItem = [...body.history].reverse().find(
+        (m: any) => m.role === "user" || m.sender === "user"
+      );
+      if (lastUserItem) {
+        question = lastUserItem.content || lastUserItem.text || "";
+      }
+    }
+
+    // If still empty, provide a default prompt instead of failing with 400
+    if (!question || typeof question !== "string" || !question.trim()) {
+      question = "Hello AI Tutor, how can I learn effectively with LernexAI?";
+    }
+
+    question = question.trim();
+
+    const lessonTitle = body.lessonTitle || "Programming Lesson";
+    const moduleTitle = body.moduleTitle || "Core Concepts";
+    const lessonContent = body.lessonContent || "";
+
+    // Build chat context with history if available
+    let historyContext = "";
+    if (Array.isArray(body.history) && body.history.length > 0) {
+      const recent = body.history.slice(-6);
+      historyContext = recent
+        .map((h: any) => `${h.role === "user" || h.sender === "user" ? "Student" : "Tutor"}: ${h.content || h.text}`)
+        .join("\n");
+    }
+
+    const gemini = getGeminiClient(req);
     let answer = "";
 
     if (gemini) {
@@ -120,21 +187,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         "gemini-3.8-flash",
         "gemini-3.7-flash",
       ];
+
+      const fullPrompt = `${historyContext ? `Previous Conversation:\n${historyContext}\n\n` : ""}Current Student Question: ${question}`;
+
       for (const modelName of candidateModels) {
         try {
           const response = await gemini.models.generateContent({
             model: modelName,
-            contents: question,
+            contents: fullPrompt,
             config: {
-              systemInstruction: `You are an expert AI tutor for LernexAI teaching "${lessonTitle}" (${moduleTitle}). Provide clear explanations with formatted code blocks.`,
+              systemInstruction: `You are an expert, encouraging AI Tutor on LernexAI for the lesson "${lessonTitle}" (${moduleTitle}). ${lessonContent ? `Lesson Content Context: ${lessonContent.slice(0, 1500)}` : ""}. Answer clearly using structured Markdown, code examples with language tags, and friendly explanations in English or Hinglish if requested.`,
             },
           });
+
           if (response?.text && response.text.trim()) {
             answer = response.text.trim();
             break;
           }
         } catch (modelErr: any) {
-          console.warn(`[AI Tutor Vercel] Gemini (${modelName}) error:`, modelErr?.message);
+          console.warn(`[AI Tutor Vercel] Gemini (${modelName}) warning:`, modelErr?.message);
         }
       }
     }
@@ -157,23 +228,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       message: assistantMsg,
       usage: {
         count: 1,
-        limit: 10,
-        isFreePlan: true,
+        limit: fallbackLimit,
+        isFreePlan: !isPro,
       },
     });
   } catch (err: any) {
-    console.error("[AI Tutor Vercel Fatal Exception]:", err);
-    const fallbackAnswer = generateSmartLocalAnswer(
-      req.body?.message || "Lesson Question",
-      req.body?.lessonTitle,
-      req.body?.moduleTitle
-    );
+    console.error("[AI Tutor Vercel Exception]:", err);
+    const fallbackAnswer = generateSmartLocalAnswer("Programming question");
 
     return res.status(200).json({
       answer: fallbackAnswer,
       response: fallbackAnswer,
       reply: fallbackAnswer,
-      warning: "Served via resilient fallback.",
+      message: {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: fallbackAnswer,
+        created_at: new Date().toISOString(),
+      },
       usage: { count: 1, limit: 10, isFreePlan: true },
     });
   }

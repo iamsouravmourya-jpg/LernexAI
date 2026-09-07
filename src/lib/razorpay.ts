@@ -276,7 +276,9 @@ export function openRazorpayCheckout(options: {
               order_id: (options.orderId && !options.orderId.startsWith("order_mock_") && !options.orderId.startsWith("order_sim_"))
                 ? options.orderId
                 : "",
-              image: typeof window !== "undefined" ? `${window.location.origin}/lernexai-logo.png` : "/lernexai-logo.png",
+              image: typeof window !== "undefined" && window.location?.origin
+                ? `${window.location.origin}/logo.png`
+                : "https://lernexai.com/logo.png",
               prefill: {
                 name: options.userName,
                 email: options.userEmail,

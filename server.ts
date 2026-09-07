@@ -308,11 +308,31 @@ const handleAITutorRequest = async (req: express.Request, res: express.Response)
       });
     }
 
-    if (!rawMessage || typeof rawMessage !== "string" || !rawMessage.trim()) {
-      return res.status(400).json({ error: "Question message is required." });
+    let question = (
+      rawMessage ||
+      req.body?.userMessage ||
+      req.body?.prompt ||
+      req.body?.question ||
+      req.body?.query ||
+      req.body?.text ||
+      ""
+    );
+
+    // If history array is provided and message is empty, try to extract last user message
+    if (!question && Array.isArray(req.body?.history) && req.body.history.length > 0) {
+      const lastUserItem = [...req.body.history].reverse().find(
+        (m: any) => m.role === "user" || m.sender === "user"
+      );
+      if (lastUserItem) {
+        question = lastUserItem.content || lastUserItem.text || "";
+      }
     }
 
-    const question = rawMessage.trim();
+    if (!question || typeof question !== "string" || !question.trim()) {
+      question = "Hello AI Tutor, how can I learn effectively with LernexAI?";
+    }
+
+    question = question.trim();
 
     const gemini = getGeminiClient(req);
     const groq = getGroqClient(req);

@@ -297,6 +297,11 @@ export default function AIChatPanel({ lesson, courseTitle, moduleTitle, planType
     setSending(true);
 
     try {
+      const historyPayload = messages.slice(-6).map((m) => ({
+        role: m.role,
+        content: m.content,
+      }));
+
       const result = await askAITutor(lesson.id, trimmed, {
         courseTitle,
         moduleTitle,
@@ -304,6 +309,7 @@ export default function AIChatPanel({ lesson, courseTitle, moduleTitle, planType
         lessonContent: lesson.content,
         isPro,
         planType: isPro ? "pro" : "free",
+        history: historyPayload,
       });
       setMessages((current) => [...current, result.message]);
       
