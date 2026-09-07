@@ -340,18 +340,21 @@ export function openRazorpayCheckout(options: {
       }
     };
 
-    // Priority: Explicit key from server order > RAZORPAY_KEY_ID > VITE_RAZORPAY_KEY_ID
+    // Priority: Explicit key from server order > import.meta.env.VITE_RAZORPAY_KEY_ID > global RAZORPAY_KEY_ID
     const effectiveKey = (
       options.keyId ||
+      (typeof import.meta !== "undefined" && import.meta.env ? import.meta.env.VITE_RAZORPAY_KEY_ID : "") ||
       RAZORPAY_KEY_ID ||
-      import.meta.env.VITE_RAZORPAY_KEY_ID ||
       ""
     ).trim();
 
-    const isRealKey = effectiveKey.startsWith("rzp_live_") || (effectiveKey.startsWith("rzp_test_") && !effectiveKey.includes("demo"));
-    const isMockOrder = !options.orderId || options.orderId.startsWith("order_mock_");
+    const isRealKey = Boolean(
+      effectiveKey &&
+      (effectiveKey.startsWith("rzp_live_") || effectiveKey.startsWith("rzp_test_")) &&
+      !effectiveKey.includes("demo12345678")
+    );
 
-    if (isRealKey && !isMockOrder) {
+    if (isRealKey) {
       loadRazorpayScript().then(() => {
         if (window.Razorpay) {
           let failureHandled = false;
@@ -362,25 +365,22 @@ export function openRazorpayCheckout(options: {
             failureHandled = true;
 
             const timeElapsed = Date.now() - openTime;
-            // If the Razorpay modal auto-closed in under 1800ms (cross-origin iframe previews, domain mismatch, or 401)
-            if (timeElapsed < 1800) {
-              console.warn("[Razorpay iframe auto-dismiss / error detected. Launching fallback checkout modal]");
-              showSimulatedRazorpayModal(wrappedOptions);
-            } else {
-              wrappedOptions.onFailure(error);
-            }
+            // If the Razorpay modal was closed quickly or error occurred
+            wrappedOptions.onFailure(error);
           };
 
           try {
-            const checkout = new window.Razorpay({
+            const checkoutConfig: RazorpayCheckoutOptions = {
               key: effectiveKey,
               amount: options.amount,
               currency: "INR",
               name: "LernexAI",
-              description: options.orderId.includes("cert")
+              description: options.orderId && options.orderId.includes("cert")
                 ? "Verified Academic Certificate"
                 : "Pro Membership & AI Doubt Clearing Credits",
-              order_id: options.orderId,
+              order_id: (options.orderId && !options.orderId.startsWith("order_mock_") && !options.orderId.startsWith("order_sim_"))
+                ? options.orderId
+                : "",
               image: typeof window !== "undefined" ? `${window.location.origin}/lernexai-logo.png` : "/lernexai-logo.png",
               prefill: {
                 name: options.userName,
@@ -399,22 +399,20 @@ export function openRazorpayCheckout(options: {
                   code: "CHECKOUT_DISMISSED"
                 }),
               },
-            });
+            };
+
+            // If no real server order_id, delete empty order_id property so Razorpay uses direct standard checkout mode
+            if (!checkoutConfig.order_id) {
+              delete (checkoutConfig as any).order_id;
+            }
+
+            const checkout = new window.Razorpay(checkoutConfig);
 
             checkout.on("payment.failed", (response) => {
               handleFailure(response.error || { message: "Payment failed." });
             });
 
             checkout.open();
-
-            // Safety Watchdog: If checkout iframe is blocked or fails without triggering callback, fallback so user is NEVER stuck!
-            watchdogTimer = setTimeout(() => {
-              const rzpContainer = document.querySelector(".razorpay-container") || document.querySelector("iframe[name^='razorpay']");
-              if (!rzpContainer && !handled && !failureHandled) {
-                console.warn("[Razorpay Watchdog: No iframe detected after open. Launching sandbox fallback modal]");
-                handleFailure({ message: "Razorpay popup could not be displayed. Switched to sandbox modal." });
-              }
-            }, 3000);
           } catch (checkoutErr) {
             console.warn("[Razorpay checkout init error]:", checkoutErr);
             showSimulatedRazorpayModal(wrappedOptions);
