@@ -1287,8 +1287,8 @@ async function pollTelegramUpdates() {
   if (isPollingTelegram) return;
   isPollingTelegram = true;
 
-  const telegramToken = process.env.TELEGRAM_BOT_TOKEN || "8676838230:AAGD11ZSi6uMslLWGKyedhU_E6GJPeX1OJE";
-  const telegramChatId = process.env.TELEGRAM_CHAT_ID || "7289466928";
+  const telegramToken = process.env.TELEGRAM_BOT_TOKEN || "";
+  const telegramChatId = process.env.TELEGRAM_CHAT_ID || "";
 
   if (!telegramToken) {
     isPollingTelegram = false;
@@ -1514,8 +1514,8 @@ Output JSON format strictly:
     let telegramMessageId: number | undefined;
 
     if (isGenuine) {
-      const telegramToken = process.env.TELEGRAM_BOT_TOKEN || "8676838230:AAGD11ZSi6uMslLWGKyedhU_E6GJPeX1OJE";
-      const telegramChatId = process.env.TELEGRAM_CHAT_ID || "7289466928";
+      const telegramToken = process.env.TELEGRAM_BOT_TOKEN || "";
+      const telegramChatId = process.env.TELEGRAM_CHAT_ID || "";
 
       const urgencyEmoji = urgency === "critical" || urgency === "high" ? "🔥" : "⚡";
       const hasScreenshot = Boolean(screenshot);
@@ -1627,8 +1627,8 @@ app.post("/api/support/sync-tickets", async (req, res) => {
 
 // Telegram Connection Test Endpoint
 app.post("/api/support/test-telegram", async (_req, res) => {
-  const telegramToken = process.env.TELEGRAM_BOT_TOKEN || "8676838230:AAGD11ZSi6uMslLWGKyedhU_E6GJPeX1OJE";
-  const telegramChatId = process.env.TELEGRAM_CHAT_ID || "7289466928";
+  const telegramToken = process.env.TELEGRAM_BOT_TOKEN || "";
+  const telegramChatId = process.env.TELEGRAM_CHAT_ID || "";
 
   try {
     const tgRes = await fetch(`https://api.telegram.org/bot${telegramToken}/sendMessage`, {
