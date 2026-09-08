@@ -215,6 +215,19 @@ lernex-ai/
 
 ---
 
-## 📄 License
+## Copyright and Usage Notice
 
-This project is licensed under the **MIT License**. You are free to use, modify, and distribute this software in personal and commercial applications.
+Copyright (c) 2026 Sourav Maurya (`sourave7` / `iamsouravmourya-jpg`). All rights reserved.
+
+This repository is publicly visible solely for evaluation and judging purposes related to the hackathon submission. It is not released under the MIT License or any other open-source license.
+
+By accessing or viewing this repository, you agree to the following restrictions:
+
+1. You may not copy, reproduce, redistribute, republish, or share this source code or any part of it.
+2. You may not modify, tamper with, reverse engineer, or create derivative works based on this project.
+3. You may not use this software, in whole or in part, for any commercial or personal external application, website, service, or product.
+4. You may not remove or alter this copyright and usage notice.
+
+All source code, application logic, designs, documentation, and associated materials remain the exclusive intellectual property of Sourav Maurya, represented by the GitHub accounts `sourave7` and `iamsouravmourya-jpg`.
+
+Unauthorized use, copying, publication, redistribution, or plagiarism may result in legal action to the extent permitted by applicable law.
