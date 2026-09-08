@@ -23,27 +23,34 @@ export async function verifyCertificatePublic(certificateId: string): Promise<Ce
 
   if (isSupabaseConfigured) {
     try {
-      const { data, error } = await supabase.rpc("verify_certificate_public", {
-        p_certificate_id: trimmed,
-      });
+      const { data, error } = await supabase
+        .from("certificate_purchases")
+        .select("certificate_id, full_name, course_title, grade, score, issued_at")
+        .ilike("certificate_id", trimmed)
+        .maybeSingle();
 
       if (!error && data) {
-        const result = data as CertificateVerification | null;
-        if (result && result.valid === true) {
-          return result;
-        }
+        return {
+          valid: true,
+          certificate_id: data.certificate_id,
+          full_name: data.full_name,
+          course_title: data.course_title,
+          grade: data.grade,
+          score: Number(data.score),
+          issued_at: data.issued_at,
+        };
       }
     } catch (e) {
-      console.warn("Supabase verifyCertificatePublic failed, checking local demo storage:", e);
+      console.warn("Supabase verifyCertificatePublic failed, checking local storage:", e);
     }
   }
 
-  // Check demo storage certificates
+  // Check local demo storage certificates if created in offline mode
   try {
     const raw = localStorage.getItem("lernex_demo_certificates");
     if (raw) {
       const list: CertificatePurchase[] = JSON.parse(raw);
-      const found = list.find(c => c.certificate_id.toLowerCase() === trimmed.toLowerCase());
+      const found = list.find(c => c.certificate_id?.toLowerCase() === trimmed.toLowerCase());
       if (found) {
         return {
           valid: true,
@@ -57,19 +64,6 @@ export async function verifyCertificatePublic(certificateId: string): Promise<Ce
       }
     }
   } catch {}
-
-  // Fallback demo certificate check
-  if (trimmed.startsWith("LXAI-")) {
-    return {
-      valid: true,
-      certificate_id: trimmed,
-      full_name: "Demo Learner",
-      course_title: "Excel for Beginners: Master Essential Desktop Spreadsheet Skills",
-      grade: "A+",
-      score: 95,
-      issued_at: new Date().toISOString(),
-    };
-  }
 
   return { valid: false };
 }
@@ -153,12 +147,14 @@ export async function createCertificatePurchase(params: {
   certificateId?: string;
 }): Promise<CertificatePurchase> {
   const certificateId = params.certificateId || buildCertificateId(params.courseId, params.score);
+  const purchaseId = `cert-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
   if (isSupabaseConfigured && isValidUuid(params.userId)) {
     try {
       const { data, error } = await supabase
         .from("certificate_purchases")
         .insert({
+          id: purchaseId,
           user_id: params.userId,
           course_id: params.courseId,
           course_title: params.courseTitle,
@@ -173,6 +169,7 @@ export async function createCertificatePurchase(params: {
         .single();
 
       if (!error && data) return data;
+      if (error) console.warn("Supabase createCertificatePurchase error:", error.message);
     } catch (e) {
       console.warn("Supabase createCertificatePurchase failed, saving locally:", e);
     }

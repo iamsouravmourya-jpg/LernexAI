@@ -245,7 +245,7 @@ export default function NotificationCenter({ user }: NotificationCenterProps) {
     const updated = notifications.filter((n) => n.id !== id);
     try {
       const raw = localStorage.getItem(storageKey);
-      let list = raw ? JSON.parse(raw) : [];
+      const list = raw ? JSON.parse(raw) : [];
       list.push({ id, dismissed: true });
       localStorage.setItem(storageKey, JSON.stringify(list));
     } catch (err) {

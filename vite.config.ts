@@ -6,8 +6,17 @@ import { fileURLToPath, URL } from 'node:url';
 export default defineConfig({
   plugins: [react()],
   define: {
+    'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(
+      process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || ''
+    ),
+    'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(
+      process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || ''
+    ),
     'import.meta.env.VITE_RAZORPAY_KEY_ID': JSON.stringify(
       process.env.RAZORPAY_KEY_ID || process.env.VITE_RAZORPAY_KEY_ID || ''
+    ),
+    'import.meta.env.VITE_SITE_URL': JSON.stringify(
+      process.env.VITE_SITE_URL || process.env.SITE_URL || ''
     ),
   },
   server: {

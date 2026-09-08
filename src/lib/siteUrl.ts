@@ -1,15 +1,19 @@
 export function getAppUrl(path = "") {
-  // Use current origin for OAuth redirects in development
-  if (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")) {
-    const baseUrl = window.location.origin;
-    const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-    return `${baseUrl}${normalizedPath}`;
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+
+  // In browser, always use current origin so redirects remain on the active host/domain
+  if (typeof window !== "undefined" && window.location.origin) {
+    return `${window.location.origin}${normalizedPath}`;
   }
   
-  // Use production URL for certificate verification links
+  // Server-side / fallback: Use production URL or configured site URL
   const productionUrl = "https://lernexai.site";
-  const baseUrl = import.meta.env.VITE_SITE_URL || import.meta.env.VITE_APP_URL || productionUrl;
+  const baseUrl = (
+    import.meta.env.VITE_SITE_URL ||
+    import.meta.env.VITE_APP_URL ||
+    (typeof process !== "undefined" ? process.env.VITE_SITE_URL || process.env.SITE_URL : "") ||
+    productionUrl
+  );
   const normalizedBase = baseUrl.replace(/\/$/, "");
-  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
   return `${normalizedBase}${normalizedPath}`;
 }

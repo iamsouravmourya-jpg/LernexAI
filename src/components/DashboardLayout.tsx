@@ -143,8 +143,12 @@ export default function DashboardLayout({ children, title, subtitle, headerBread
 
   // User initials
   const initials = user?.name
-    ? user.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
-    : "DS";
+    ? user.name.split(" ").filter(Boolean).map(n => n[0]).join("").toUpperCase().slice(0, 2)
+    : user?.email
+    ? user.email.slice(0, 2).toUpperCase()
+    : isDemoUser(user)
+    ? "DS"
+    : "ST";
 
   return (
     <div className="relative min-h-screen bg-slate-50 text-slate-900 font-sans lg:flex overflow-x-hidden">
@@ -375,8 +379,17 @@ export default function DashboardLayout({ children, title, subtitle, headerBread
               {profileDropdownOpen && (
                 <div className="absolute right-0 top-12 w-60 bg-white rounded-2xl border border-slate-200 shadow-2xl py-2 z-50">
                   <div className="px-4 py-3 border-b border-slate-100">
-                    <div className="font-bold text-sm text-slate-900 truncate">{user?.name || "Demo Student"}</div>
-                    <div className="text-xs text-slate-500 truncate">{user?.email || "student@lernex.ai"}</div>
+                    <div className="font-bold text-sm text-slate-900 truncate">
+                      {user?.name || user?.email?.split('@')[0] || (isDemoUser(user) ? "Demo Student" : "Student")}
+                    </div>
+                    <div className="text-xs text-slate-500 truncate">
+                      {user?.email || (isDemoUser(user) ? "demo@lernexai.com" : "")}
+                    </div>
+                    {isDemoUser(user) && (
+                      <div className="mt-1.5 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                        Demo Mode
+                      </div>
+                    )}
                   </div>
                   <button
                     onClick={() => { setProfileDropdownOpen(false); setAccountDetailsOpen(true); }}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useAuth, DEMO_CREDENTIALS } from "@/context/AuthContext";
+import { useAuth, DEMO_CREDENTIALS, isDemoUser } from "@/context/AuthContext";
 import { Link, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -23,7 +23,7 @@ import {
 import { MeshGradientBackground, PageEffects, GradientText } from "@/components/anim";
 
 export default function Auth() {
-  const { login, signup, loginWithGoogle, loginAsDemo, user } = useAuth();
+  const { login, signup, loginWithGoogle, loginAsDemo, logout, user } = useAuth();
   const [, setLocation] = useLocation();
 
   // Detect ?mode=signup or #signup from URL
@@ -38,10 +38,18 @@ export default function Auth() {
   const [termsAccepted, setTermsAccepted] = useState(false);
 
   useEffect(() => {
-    if (user) {
+    // If URL has ?logout=true or ?switch=true, purge session immediately
+    const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+    if (params?.get("logout") === "true" || params?.get("switch") === "true") {
+      void logout();
+      return;
+    }
+
+    // Only redirect if a REAL user is logged in
+    if (user && !isDemoUser(user)) {
       setLocation("/dashboard", { replace: true });
     }
-  }, [user, setLocation]);
+  }, [user, setLocation, logout]);
 
   // Form state
   const [firstName, setFirstName] = useState("");
@@ -92,7 +100,7 @@ export default function Auth() {
     }
   };
 
-  if (user) {
+  if (user && !isDemoUser(user)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-900 relative overflow-hidden">
         <MeshGradientBackground />
@@ -271,6 +279,21 @@ export default function Auth() {
 
           {/* Main Container */}
           <div className="relative rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-xl hover:border-cyan-500/40 transition-all duration-300">
+            {isDemoUser(user) && (
+              <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50/90 p-3.5 text-xs text-amber-900 flex items-center justify-between">
+                <div className="leading-relaxed">
+                  <span className="font-bold">Demo Preview Active:</span> Sign in to your real account below.
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void logout()}
+                  className="ml-3 shrink-0 px-2.5 py-1 rounded-lg bg-amber-200/80 hover:bg-amber-300 text-amber-950 font-semibold transition-colors"
+                >
+                  Exit Demo
+                </button>
+              </div>
+            )}
+
             {/* TAB SELECTOR WITH FRAMER MOTION */}
             <div className="mb-6 flex rounded-2xl border border-slate-200 bg-slate-100 p-1.5">
               <button

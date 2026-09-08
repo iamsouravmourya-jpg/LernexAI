@@ -71,11 +71,10 @@ function getOrCreateGroqClient(apiKey: string): Groq {
  */
 export const GROQ_PRODUCTION_MODELS = [
   process.env.GROQ_MODEL,
-  "llama-3.3-70b-versatile",
-  "llama-3.1-8b-instant",
-  "qwen-2.5-coder-32b",
-  "mixtral-8x7b-32768",
-  "gemma2-9b-it",
+  "qwen/qwen3.8-27b",
+  "openai/gpt-oss-20b",
+  "openai/gpt-oss-120b",
+  "qwen/qwen3.6-27b",
 ].filter(Boolean) as string[];
 
 /**
@@ -88,6 +87,10 @@ export async function executeGroqChatWithRotation(
 ): Promise<{ text: string; keyIndex: number; model: string }> {
   const keyPool = getActiveGroqKeyPool(req);
   const totalKeys = keyPool.length;
+
+  if (totalKeys === 0) {
+    throw new Error("No valid Groq API keys configured in pool.");
+  }
 
   // Increment atomic round-robin pointer for request entry
   const startPointer = globalKeyPointer;
@@ -110,10 +113,19 @@ export async function executeGroqChatWithRotation(
           max_tokens: options?.maxTokens ?? 700,
         });
 
-        const reply = response.choices?.[0]?.message?.content?.trim();
-        if (reply) {
+        const messageObj = response.choices?.[0]?.message as
+          | { content?: string; reasoning?: string }
+          | undefined;
+        const rawReply =
+          messageObj?.content?.trim() || messageObj?.reasoning?.trim();
+
+        if (rawReply) {
+          const cleanReply = rawReply
+            .replace(/<think>[\s\S]*?<\/think>/g, "")
+            .trim();
+          const finalReply = cleanReply || rawReply;
           return {
-            text: reply,
+            text: finalReply,
             keyIndex: currentKeyIndex + 1,
             model: modelName,
           };

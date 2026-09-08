@@ -159,9 +159,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const groqModels = [
         process.env.GROQ_MODEL,
-        "llama-3.3-70b-versatile",
-        "llama-3.1-8b-instant",
+        "qwen/qwen3.8-27b",
         "openai/gpt-oss-20b",
+        "openai/gpt-oss-120b",
+        "qwen/qwen3.6-27b",
       ].filter(Boolean) as string[];
 
       const systemPrompt = `You are LernexAI's elite AI Tutor and private coding mentor for the lesson "${lessonTitle}" (${moduleTitle}).
@@ -194,10 +195,18 @@ Instructions:
                 max_tokens: 800,
               });
 
-              const reply = completion.choices?.[0]?.message?.content?.trim();
-              if (reply) {
+              const msgObj = completion.choices?.[0]?.message as
+                | { content?: string; reasoning?: string }
+                | undefined;
+              const rawReply = msgObj?.content?.trim() || msgObj?.reasoning?.trim();
+
+              if (rawReply) {
+                const cleanReply = rawReply
+                  .replace(/<think>[\s\S]*?<\/think>/g, "")
+                  .trim();
+                const finalReply = cleanReply || rawReply;
                 console.log(`[AI Tutor] Success with Groq Key #${keyIndex} and model ${modelName}`);
-                answer = reply;
+                answer = finalReply;
                 break;
               }
             } catch (modelErr: any) {

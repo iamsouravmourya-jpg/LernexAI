@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { 
   Send, 
   HelpCircle, 
@@ -12,20 +12,23 @@ import {
   CheckCircle2, 
   LifeBuoy, 
   Sparkles, 
-  Copy,
-  Check,
-  Bug,
-  Lightbulb,
-  MessageSquare,
-  Paperclip,
-  Clock,
-  ShieldCheck,
-  UploadCloud,
-  Image as ImageIcon,
-  X
+  Copy, 
+  Check, 
+  Bug, 
+  Lightbulb, 
+  MessageSquare, 
+  Paperclip, 
+  Clock, 
+  ShieldCheck, 
+  UploadCloud, 
+  Image as ImageIcon, 
+  X,
+  RefreshCw
 } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/context/AuthContext";
+import { supabase, isSupabaseConfigured, isValidUuid } from "@/lib/supabase";
 
 interface Ticket {
   id: string;
@@ -33,15 +36,27 @@ interface Ticket {
   subject: string;
   message: string;
   priority: "low" | "normal" | "high" | "urgent";
-  status: "In Progress" | "Resolved" | "Pending Review";
+  status: "In Progress" | "Resolved" | "Pending Review" | "Under Review" | "Auto-Resolved";
   createdAt: string;
+  createdAtIso?: string;
   url?: string;
+  screenshot?: string;
+  aiResponse?: string;
+  recommendedAction?: string;
+  isSpam?: boolean;
+  isGenuine?: boolean;
+  urgency?: string;
+  telegramSent?: boolean;
+  adminReply?: string;
+  adminReplyTime?: string;
+  adminName?: string;
 }
 
 type IssueType = "bug" | "feature" | "course" | "course_request" | "billing" | "general";
 
 export default function Support() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"submit" | "faq" | "tickets">("submit");
   const [issueType, setIssueType] = useState<IssueType>("course_request");
   const [subject, setSubject] = useState("");
@@ -81,6 +96,7 @@ export default function Support() {
   };
   
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSyncingTickets, setIsSyncingTickets] = useState(false);
   const [copied, setCopied] = useState(false);
 
   // Search state for FAQs
@@ -112,27 +128,77 @@ export default function Support() {
     }
   }, []);
 
-  // List of user tickets
-  const [userTickets, setUserTickets] = useState<Ticket[]>([
-    {
-      id: "TKT-8492",
-      category: "Payment & Billing",
-      subject: "Certificate purchase invoice receipt query",
-      message: "I completed the final exam and passed with 88%. Need invoice receipt for company reimbursement.",
-      priority: "normal",
-      status: "In Progress",
-      createdAt: "Today at 10:30 AM",
-    },
-    {
-      id: "TKT-7120",
-      category: "Feature Suggestion",
-      subject: "Add dark mode toggle for code editor",
-      message: "It would be awesome to have custom font size controls in the live terminal.",
-      priority: "low",
-      status: "Resolved",
-      createdAt: "Yesterday",
+  // List of user tickets (persisted locally and synced with backend)
+  const [userTickets, setUserTickets] = useState<Ticket[]>(() => {
+    try {
+      const raw = localStorage.getItem("lernex_user_tickets");
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return [];
+  });
+
+  // Sync tickets with backend to fetch Telegram replies and live status updates
+  const syncTicketsWithServer = useCallback(async (showIndicator = false) => {
+    if (showIndicator) setIsSyncingTickets(true);
+    try {
+      const raw = localStorage.getItem("lernex_user_tickets");
+      const currentList: Ticket[] = raw ? JSON.parse(raw) : userTickets;
+      const ticketIds = currentList.map((t) => t.id);
+
+      const res = await fetch("/api/support/sync-tickets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ticketIds,
+          userEmail: user?.email || undefined,
+          userId: user?.id || undefined,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.tickets)) {
+          const serverMap = new Map<string, any>(data.tickets.map((t: any) => [t.id.toUpperCase(), t]));
+          
+          let hasChange = false;
+          const merged = currentList.map((localTkt) => {
+            const serverTkt = serverMap.get(localTkt.id.toUpperCase());
+            if (serverTkt) {
+              if (serverTkt.status !== localTkt.status || serverTkt.adminReply !== localTkt.adminReply) {
+                hasChange = true;
+              }
+              return { ...localTkt, ...serverTkt };
+            }
+            return localTkt;
+          });
+
+          data.tickets.forEach((st: any) => {
+            if (!merged.some((m) => m.id.toUpperCase() === st.id.toUpperCase())) {
+              merged.unshift(st);
+              hasChange = true;
+            }
+          });
+
+          if (hasChange || currentList.length !== merged.length) {
+            setUserTickets(merged);
+            localStorage.setItem("lernex_user_tickets", JSON.stringify(merged));
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Tickets sync error:", err);
+    } finally {
+      if (showIndicator) setIsSyncingTickets(false);
     }
-  ]);
+  }, [user?.email, user?.id, userTickets]);
+
+  useEffect(() => {
+    syncTicketsWithServer();
+    const interval = setInterval(() => {
+      syncTicketsWithServer();
+    }, 4500);
+    return () => clearInterval(interval);
+  }, [syncTicketsWithServer]);
 
   const categories = [
     { 
@@ -226,7 +292,7 @@ export default function Support() {
     });
   }, [faqItems, faqQuery, selectedFaqCategory]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!subject.trim() || !message.trim()) {
       toast({
@@ -240,11 +306,25 @@ export default function Support() {
     setIsSubmitting(true);
     const categoryObj = categories.find(c => c.id === issueType);
     const categoryName = categoryObj ? categoryObj.label : "General";
+    const generatedId = `TKT-${Math.floor(1000 + Math.random() * 9000)}`;
 
-    setTimeout(() => {
-      setIsSubmitting(false);
-      const newTicket: Ticket = {
-        id: `TKT-${Math.floor(1000 + Math.random() * 9000)}`,
+    try {
+      if (issueType === "course_request" && isSupabaseConfigured) {
+        try {
+          await supabase.from("course_requests").insert({
+            user_id: user?.id && isValidUuid(user.id) ? user.id : null,
+            topic: subject.trim(),
+            description: message.trim(),
+            votes: 1,
+            status: "requested"
+          });
+        } catch (dbErr) {
+          console.warn("Course request DB insert error:", dbErr);
+        }
+      }
+
+      let createdTicket: Ticket = {
+        id: generatedId,
         category: categoryName,
         subject: subject.trim(),
         message: message.trim(),
@@ -252,27 +332,70 @@ export default function Support() {
         status: "Pending Review",
         createdAt: "Just now",
         url: urlLink.trim() || undefined,
+        screenshot: screenshotPreview || undefined,
       };
 
-      setUserTickets([newTicket, ...userTickets]);
+      try {
+        const response = await fetch("/api/support/submit-ticket", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ticketId: generatedId,
+            category: categoryName,
+            subject: subject.trim(),
+            message: message.trim(),
+            priority,
+            userEmail: user?.email || undefined,
+            userName: user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Learner",
+            userId: user?.id || undefined,
+            screenshot: screenshotPreview || undefined,
+            url: urlLink.trim() || undefined,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.ticket) {
+            createdTicket = data.ticket;
+          }
+        }
+      } catch (apiErr) {
+        console.warn("API support submit failed, using client fallback:", apiErr);
+      }
+
+      const updated = [createdTicket, ...userTickets];
+      setUserTickets(updated);
+      try {
+        localStorage.setItem("lernex_user_tickets", JSON.stringify(updated));
+      } catch {}
+
       setSubject("");
       setMessage("");
       setUrlLink("");
+      handleRemoveFile();
+      setIsSubmitting(false);
 
-      if (issueType === "course_request") {
+      if (createdTicket.status === "Auto-Resolved") {
+        toast({
+          title: "AI Instant Guidance Provided 💡",
+          description: `Ticket ${createdTicket.id} was reviewed by our automated assistant. See response below.`,
+        });
+      } else if (issueType === "course_request") {
         toast({
           title: "Course Request Received! 🎓",
-          description: `Your request (${newTicket.id}) has been added to our curriculum backlog. We will notify you once built!`,
+          description: `Your request (${createdTicket.id}) has been added to our live curriculum backlog and escalated to the academic team!`,
         });
       } else {
         toast({
-          title: "Feedback Submitted!",
-          description: `Your ticket ${newTicket.id} has been logged. Our engineering team will review it shortly.`,
+          title: "Ticket Logged & Alert Dispatched 🚀",
+          description: `Ticket ${createdTicket.id} marked as Under Review. Our support lead has received your alert!`,
         });
       }
 
       setActiveTab("tickets");
-    }, 800);
+    } catch {
+      setIsSubmitting(false);
+    }
   };
 
   const copySupportEmail = () => {
@@ -614,45 +737,187 @@ export default function Support() {
         {/* TAB 3: MY SUBMITTED TICKETS */}
         {activeTab === "tickets" && (
           <div className="space-y-4">
-            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider px-1">
-              Your Activity History ({userTickets.length} Tickets)
-            </div>
-
-            <div className="grid gap-4">
-              {userTickets.map((tkt) => (
-                <div
-                  key={tkt.id}
-                  className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-3"
+            <div className="flex items-center justify-between px-1 flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Your Activity History ({userTickets.length} Tickets)
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-bold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  Live Sync Active
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => syncTicketsWithServer(true)}
+                  disabled={isSyncingTickets}
+                  className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
+                  title="Check for new replies"
                 >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-black text-teal-700 bg-teal-50 px-2.5 py-1 rounded-md border border-teal-200">
-                        {tkt.id}
-                      </span>
-                      <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md">
-                        {tkt.category}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2 text-xs">
-                      <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-                        tkt.status === "Resolved" 
-                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                          : "bg-amber-50 text-amber-700 border border-amber-200"
-                      }`}>
-                        {tkt.status}
-                      </span>
-                      <span className="text-slate-400 text-[11px]">{tkt.createdAt}</span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="text-sm font-bold text-slate-900">{tkt.subject}</h3>
-                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">{tkt.message}</p>
-                  </div>
-                </div>
-              ))}
+                  <RefreshCw className={`w-3.5 h-3.5 ${isSyncingTickets ? "animate-spin text-teal-600" : "text-slate-500"}`} />
+                  <span>{isSyncingTickets ? "Syncing..." : "Refresh"}</span>
+                </button>
+                {userTickets.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm("Are you sure you want to clear your local ticket history?")) {
+                        setUserTickets([]);
+                        localStorage.removeItem("lernex_user_tickets");
+                        toast({ title: "History Cleared", description: "Your local support tickets have been cleared." });
+                      }
+                    }}
+                    className="text-[11px] font-semibold text-slate-400 hover:text-red-600 transition cursor-pointer"
+                  >
+                    Clear History
+                  </button>
+                )}
+              </div>
             </div>
+
+            {userTickets.length === 0 ? (
+              <div className="bg-white rounded-3xl border border-slate-200 p-10 shadow-sm text-center space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-teal-50 text-teal-700 flex items-center justify-center mx-auto">
+                  <Clock className="w-6 h-6 text-teal-600" />
+                </div>
+                <h3 className="text-base font-bold text-slate-900">No Support Tickets Yet</h3>
+                <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+                  You haven't submitted any inquiries or course requests yet. Any bug reports, feedback, or curriculum suggestions you submit will appear here.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("submit")}
+                  className="px-5 py-2.5 rounded-xl bg-teal-700 hover:bg-teal-800 text-white text-xs font-bold transition cursor-pointer"
+                >
+                  Submit a Report or Request
+                </button>
+              </div>
+            ) : (
+              <div className="grid gap-4">
+                {userTickets.map((tkt) => {
+                  const isResolved = tkt.status === "Resolved";
+                  const isAutoResolved = tkt.status === "Auto-Resolved";
+                  const isUnderReview = tkt.status === "Under Review";
+
+                  return (
+                    <div
+                      key={tkt.id}
+                      className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4 transition hover:border-slate-300"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-black text-teal-700 bg-teal-50 px-2.5 py-1 rounded-md border border-teal-200 font-mono">
+                            {tkt.id}
+                          </span>
+                          <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md">
+                            {tkt.category}
+                          </span>
+                          {tkt.priority && (
+                            <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md ${
+                              tkt.priority === "urgent" || tkt.priority === "high"
+                                ? "bg-rose-50 text-rose-700 border border-rose-200"
+                                : "bg-slate-100 text-slate-500"
+                            }`}>
+                              {tkt.priority}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2 text-xs">
+                          <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold inline-flex items-center gap-1 ${
+                            isResolved
+                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                              : isAutoResolved
+                              ? "bg-teal-50 text-teal-700 border border-teal-200"
+                              : isUnderReview
+                              ? "bg-blue-50 text-blue-700 border border-blue-200"
+                              : "bg-amber-50 text-amber-700 border border-amber-200"
+                          }`}>
+                            {isResolved && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
+                            {tkt.status}
+                          </span>
+                          <span className="text-slate-400 text-[11px]">{tkt.createdAt}</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-900">{tkt.subject}</h3>
+                        <p className="text-xs text-slate-600 mt-1.5 leading-relaxed whitespace-pre-line">{tkt.message}</p>
+                        
+                        {tkt.screenshot && (
+                          <div className="mt-3">
+                            <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider block mb-1.5">
+                              Attached Screenshot
+                            </span>
+                            <img
+                              src={tkt.screenshot}
+                              alt="Attachment"
+                              className="max-h-48 rounded-xl border border-slate-200 object-cover bg-slate-50 hover:opacity-90 transition cursor-pointer"
+                              onClick={() => {
+                                const w = window.open("");
+                                if (w) {
+                                  w.document.write(`<img src="${tkt.screenshot}" style="max-width:100%;height:auto;display:block;margin:auto;" />`);
+                                }
+                              }}
+                            />
+                          </div>
+                        )}
+
+                        {tkt.url && (
+                          <div className="mt-2 text-[11px] text-teal-700 flex items-center gap-1 font-mono">
+                            <Paperclip className="w-3.5 h-3.5" />
+                            <span className="truncate max-w-sm">{tkt.url}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Official Human Response from Support */}
+                      {tkt.adminReply && (
+                        <div className="p-4 rounded-2xl bg-emerald-50/90 border border-emerald-200 text-xs space-y-2.5 shadow-xs">
+                          <div className="flex items-center justify-between flex-wrap gap-1">
+                            <div className="flex items-center gap-2 font-bold text-emerald-950">
+                              <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                                <ShieldCheck className="w-3.5 h-3.5" />
+                              </div>
+                              <span className="text-emerald-900">
+                                Official Response from Lernex AI Support Team
+                              </span>
+                            </div>
+                            {tkt.adminReplyTime && (
+                              <span className="text-[11px] text-emerald-700 font-medium">{tkt.adminReplyTime}</span>
+                            )}
+                          </div>
+                          <div className="bg-white/90 rounded-xl p-3.5 border border-emerald-100/90 text-slate-800 leading-relaxed text-xs sm:text-[13px] font-medium whitespace-pre-line">
+                            {tkt.adminReply}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* AI Instant Guidance / Auto-Response */}
+                      {tkt.aiResponse && (
+                        <div>
+                          <div className="p-3.5 rounded-2xl bg-teal-50/70 border border-teal-100/80 text-xs text-slate-700 flex items-start gap-2.5">
+                            <Sparkles className="w-4 h-4 text-teal-600 shrink-0 mt-0.5" />
+                            <div className="space-y-1 w-full">
+                              <div className="font-bold text-teal-900 flex items-center justify-between">
+                                <span>Lernex AI Assistant Resolution & Guidance</span>
+                                {tkt.telegramSent && (
+                                  <span className="text-[10px] font-semibold text-teal-700 bg-teal-100/80 px-2 py-0.5 rounded-full">
+                                    Escalated to Support Desk
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-slate-700 leading-relaxed text-[12px]">{tkt.aiResponse}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 

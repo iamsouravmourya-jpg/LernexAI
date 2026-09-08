@@ -40,8 +40,13 @@ export default function Home() {
   const [, setLocation] = useLocation();
 
   const oauthCallbackSearch =
-    typeof window !== "undefined" && new URL(window.location.href).searchParams.has("code")
-      ? window.location.search
+    typeof window !== "undefined" &&
+    (new URL(window.location.href).searchParams.has("code") ||
+      new URL(window.location.href).searchParams.has("access_token") ||
+      new URL(window.location.href).searchParams.has("error") ||
+      window.location.hash.includes("access_token=") ||
+      window.location.hash.includes("code="))
+      ? (window.location.search || "") + (window.location.hash || "")
       : null;
 
   useEffect(() => {

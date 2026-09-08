@@ -1,5 +1,6 @@
 import express from "express";
 import path from "path";
+import fs from "fs";
 import crypto from "crypto";
 import Razorpay from "razorpay";
 import { createClient } from "@supabase/supabase-js";
@@ -32,6 +33,11 @@ app.use((req, res, next) => {
 
 // Serve public directory static assets (branding, icons, logos)
 app.use(express.static(path.join(process.cwd(), "public")));
+
+// Health check endpoint
+app.get(["/api/health", "/health"], (_req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
 
 // Initialize Gemini Client safely
 function getGeminiClient(req?: express.Request) {
@@ -1219,6 +1225,425 @@ app.post(["/api/admin/sync-courses-to-supabase", "/admin/sync-courses-to-supabas
     });
   } catch (err: any) {
     return res.status(500).json({ error: "Failed to push courses to Supabase", details: err?.message });
+  }
+});
+
+// Support Ticket Storage and Telegram Bidirectional Sync
+interface SupportTicketRecord {
+  id: string;
+  category: string;
+  subject: string;
+  message: string;
+  priority: string;
+  status: "Under Review" | "Resolved" | "Auto-Resolved" | "Pending Review";
+  createdAt: string;
+  createdAtIso?: string;
+  userEmail?: string;
+  userName?: string;
+  userId?: string;
+  screenshot?: string;
+  url?: string;
+  isSpam: boolean;
+  isGenuine: boolean;
+  urgency: string;
+  aiResponse?: string;
+  recommendedAction?: string;
+  telegramSent: boolean;
+  telegramMessageId?: number;
+  adminReply?: string;
+  adminReplyTime?: string;
+  adminName?: string;
+}
+
+const TICKETS_FILE = path.join(process.cwd(), "data", "support_tickets.json");
+
+function loadTickets(): SupportTicketRecord[] {
+  try {
+    if (fs.existsSync(TICKETS_FILE)) {
+      const content = fs.readFileSync(TICKETS_FILE, "utf-8");
+      return JSON.parse(content);
+    }
+  } catch (err) {
+    console.error("[Tickets DB] Read error:", err);
+  }
+  return [];
+}
+
+function saveTickets(tickets: SupportTicketRecord[]) {
+  try {
+    const dir = path.dirname(TICKETS_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(TICKETS_FILE, JSON.stringify(tickets, null, 2), "utf-8");
+  } catch (err) {
+    console.error("[Tickets DB] Write error:", err);
+  }
+}
+
+// Background Polling Worker for Telegram Replies
+let lastTelegramUpdateId = 0;
+let isPollingTelegram = false;
+
+async function pollTelegramUpdates() {
+  if (isPollingTelegram) return;
+  isPollingTelegram = true;
+
+  const telegramToken = process.env.TELEGRAM_BOT_TOKEN || "8676838230:AAGD11ZSi6uMslLWGKyedhU_E6GJPeX1OJE";
+  const telegramChatId = process.env.TELEGRAM_CHAT_ID || "7289466928";
+
+  if (!telegramToken) {
+    isPollingTelegram = false;
+    return;
+  }
+
+  try {
+    const url = `https://api.telegram.org/bot${telegramToken}/getUpdates?offset=${lastTelegramUpdateId + 1}&timeout=4`;
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (data.ok && Array.isArray(data.result) && data.result.length > 0) {
+      const tickets = loadTickets();
+      let ticketsChanged = false;
+
+      for (const update of data.result) {
+        if (update.update_id > lastTelegramUpdateId) {
+          lastTelegramUpdateId = update.update_id;
+        }
+
+        const msg = update.message;
+        if (!msg || !msg.text) continue;
+
+        const incomingText = msg.text.trim();
+        const senderChatId = String(msg.chat?.id);
+        const senderName = msg.from?.first_name || "Support Lead";
+
+        // Ignore commands like /start
+        if (incomingText.startsWith("/")) continue;
+
+        let matchedTicket: SupportTicketRecord | undefined;
+
+        // Check A: Reply to a ticket notification message (Telegram swipe reply)
+        if (msg.reply_to_message) {
+          const replyText = msg.reply_to_message.text || "";
+          const match = replyText.match(/Ticket ID:\s*`?(TKT-\d+)`?/i);
+          if (match) {
+            const tktId = match[1].toUpperCase();
+            matchedTicket = tickets.find(t => t.id.toUpperCase() === tktId);
+          }
+
+          if (!matchedTicket && msg.reply_to_message.message_id) {
+            matchedTicket = tickets.find(t => t.telegramMessageId === msg.reply_to_message.message_id);
+          }
+        }
+
+        // Check B: Direct message formatted as "TKT-1234: reply text" or "TKT-1234 reply text"
+        if (!matchedTicket) {
+          const directMatch = incomingText.match(/^(TKT-\d+)[:\s]+(.+)/is);
+          if (directMatch) {
+            const tktId = directMatch[1].toUpperCase();
+            matchedTicket = tickets.find(t => t.id.toUpperCase() === tktId);
+          }
+        }
+
+        // Check C: If admin typed a message without reply_to_message or Ticket ID
+        if (!matchedTicket && senderChatId === String(telegramChatId) && !msg.reply_to_message) {
+          const openTickets = tickets.filter(t => t.status === "Under Review");
+          if (openTickets.length === 1) {
+            matchedTicket = openTickets[0];
+          } else if (openTickets.length > 1) {
+            // Send guidance back to Telegram so no accidental mixup happens
+            try {
+              const openIds = openTickets.slice(0, 5).map(o => `• \`${o.id}\`: ${o.subject.slice(0, 25)}...`).join("\n");
+              await fetch(`https://api.telegram.org/bot${telegramToken}/sendMessage`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  chat_id: telegramChatId,
+                  reply_to_message_id: msg.message_id,
+                  text: `⚠️ *Which ticket are you replying to?*\n\nYou currently have *${openTickets.length} open tickets* waiting:\n${openIds}\n\n👉 *How to reply accurately:*\n1️⃣ *Swipe-Reply* to that ticket's specific alert message, OR\n2️⃣ Start your message with the Ticket ID (e.g. \`${openTickets[0].id}: your answer\`).`,
+                  parse_mode: "Markdown",
+                }),
+              });
+            } catch (guideErr) {
+              console.warn("[Telegram Ambiguity Warning Err]:", guideErr);
+            }
+          }
+        }
+
+        if (matchedTicket) {
+          let cleanReply = incomingText;
+          const prefixMatch = cleanReply.match(/^TKT-\d+[:\s]+(.+)/is);
+          if (prefixMatch) {
+            cleanReply = prefixMatch[1].trim();
+          }
+
+          matchedTicket.adminReply = cleanReply;
+          matchedTicket.adminReplyTime = new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
+          matchedTicket.adminName = senderName;
+          matchedTicket.status = "Resolved";
+          ticketsChanged = true;
+
+          console.log(`[Telegram Reply Received] Ticket ${matchedTicket.id} answered by ${senderName}: "${cleanReply}"`);
+
+          // Send confirmation message to Telegram admin chat
+          try {
+            await fetch(`https://api.telegram.org/bot${telegramToken}/sendMessage`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                chat_id: telegramChatId,
+                reply_to_message_id: msg.message_id,
+                text: `✅ *Reply Sent to Student!*\n\n🎫 *Ticket ID:* \`${matchedTicket.id}\`\n📌 *Subject:* ${matchedTicket.subject}\n💬 *Your Reply:* "${cleanReply}"\n🟢 *Status:* Resolved\n\nStudent will see this response on their Help Center dashboard.`,
+                parse_mode: "Markdown",
+              }),
+            });
+          } catch (replyErr) {
+            console.warn("[Telegram Reply Confirm Err]:", replyErr);
+          }
+        }
+      }
+
+      if (ticketsChanged) {
+        saveTickets(tickets);
+      }
+    }
+  } catch (pollErr) {
+    // Silent catch
+  } finally {
+    isPollingTelegram = false;
+  }
+}
+
+// Start Telegram Polling loop every 3.5 seconds
+setInterval(pollTelegramUpdates, 3500);
+
+// Support Ticket Triage Endpoint with Groq AI + Telegram Integration
+app.post("/api/support/submit-ticket", async (req, res) => {
+  try {
+    const {
+      ticketId,
+      category,
+      subject,
+      message,
+      priority = "normal",
+      userEmail,
+      userName,
+      userId,
+      screenshot,
+      url,
+    } = req.body || {};
+
+    if (!subject || !message) {
+      return res.status(400).json({ error: "Subject and message are required" });
+    }
+
+    const assignedId = ticketId || `TKT-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    // 1. Groq AI Classification & Auto-Responder
+    const groqApiKey = process.env.GROQ_API_KEY || "";
+    const groq = new Groq({ apiKey: groqApiKey });
+
+    let isSpam = false;
+    let isGenuine = true;
+    let urgency = "normal";
+    let autoReply = "Thank you for contacting Lernex AI Support. We have received your query and our team will get back to you shortly.";
+    let recommendedAction = "Review user query.";
+
+    try {
+      const groqResponse = await groq.chat.completions.create({
+        model: "openai/gpt-oss-20b",
+        messages: [
+          {
+            role: "system",
+            content: `You are an automated support triage AI for Lernex AI, an online coding, skills & verified certification platform.
+Evaluate this user support ticket and respond strictly in JSON format.
+
+Determine:
+1. "isSpam": true ONLY if the message is obvious spam, gibberish/nonsense, random letters (e.g. "asdfg", "123", "test"), single-word casual greeting ("hi", "hello") with no query, abuse, or promotional spam. If it describes any question, bug, payment query, course issue, login difficulty, certificate issue, or feedback, "isSpam" MUST BE false.
+2. "isGenuine": !isSpam (true if it's a real question, difficulty, or request).
+3. "urgency": "low" | "normal" | "high" | "critical" (e.g. payment/billing or certificate issues are "high" or "critical").
+4. "autoReply": A warm, professional, helpful response in friendly tone (Hinglish or English based on user's query language).
+   - If payment issue: reassure that all transactions are verified and support will trace the payment ID.
+   - If certificate: explain that certificates are verified on /verify and can be re-downloaded.
+   - If course or code sandbox: provide quick guidance or say the team is investigating.
+   - If spam/greeting: politely ask for specific details about how we can help.
+5. "recommendedAction": Short 1-2 line summary for the human support agent.
+
+Output JSON format strictly:
+{
+  "isSpam": false,
+  "isGenuine": true,
+  "urgency": "normal",
+  "autoReply": "...",
+  "recommendedAction": "..."
+}`
+          },
+          {
+            role: "user",
+            content: `Ticket ID: ${assignedId}\nCategory: ${category || "General"}\nPriority: ${priority}\nSubject: ${subject}\nMessage: ${message}`
+          }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.2,
+      });
+
+      const rawContent = groqResponse.choices[0]?.message?.content || "{}";
+      const parsed = JSON.parse(rawContent);
+      if (typeof parsed.isSpam === "boolean") isSpam = parsed.isSpam;
+      if (typeof parsed.isGenuine === "boolean") isGenuine = parsed.isGenuine;
+      if (parsed.urgency) urgency = parsed.urgency;
+      if (parsed.autoReply) autoReply = parsed.autoReply;
+      if (parsed.recommendedAction) recommendedAction = parsed.recommendedAction;
+    } catch (groqErr) {
+      console.warn("[Groq Triage Error]:", groqErr);
+      const text = `${subject} ${message}`.toLowerCase().trim();
+      if (text.length < 5 || /^(hi|hello|test|testing|asdf|hey|kya hai)$/i.test(text)) {
+        isSpam = true;
+        isGenuine = false;
+        autoReply = "Hello! We received your message. Please provide specific details about your issue so we can help you promptly.";
+      } else {
+        isGenuine = true;
+        isSpam = false;
+      }
+    }
+
+    const ticketStatus = isSpam ? "Auto-Resolved" : "Under Review";
+
+    // 2. Telegram Alert for Genuine Tickets
+    let telegramSent = false;
+    let telegramError: string | null = null;
+    let telegramMessageId: number | undefined;
+
+    if (isGenuine) {
+      const telegramToken = process.env.TELEGRAM_BOT_TOKEN || "8676838230:AAGD11ZSi6uMslLWGKyedhU_E6GJPeX1OJE";
+      const telegramChatId = process.env.TELEGRAM_CHAT_ID || "7289466928";
+
+      const urgencyEmoji = urgency === "critical" || urgency === "high" ? "🔥" : "⚡";
+      const hasScreenshot = Boolean(screenshot);
+      const tgText = `🚨 *NEW GENUINE SUPPORT TICKET* 🚨\n\n` +
+        `🎫 *Ticket ID:* \`${assignedId}\`\n` +
+        `👤 *User:* ${userName || "Learner"} (${userEmail || "Guest"})\n` +
+        `📂 *Category:* ${category || "General"}\n` +
+        `${urgencyEmoji} *Priority:* ${priority.toUpperCase()} (AI Urgency: ${urgency.toUpperCase()})\n` +
+        `📌 *Subject:* ${subject}\n\n` +
+        `💬 *Message:*\n"${message}"\n\n` +
+        (hasScreenshot ? `📷 *Screenshot attached by user*\n` : "") +
+        (url ? `🔗 *URL:* ${url}\n\n` : "") +
+        `🤖 *AI Assessment:* ${recommendedAction}\n` +
+        `🕒 *Received:* ${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}\n\n` +
+        `👉 *To reply: Swipe-Reply to this message OR type \`${assignedId}: your reply\`*`;
+
+      try {
+        const tgRes = await fetch(`https://api.telegram.org/bot${telegramToken}/sendMessage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id: telegramChatId,
+            text: tgText,
+            parse_mode: "Markdown",
+          }),
+        });
+
+        const tgJson = await tgRes.json();
+        if (tgJson.ok) {
+          telegramSent = true;
+          telegramMessageId = tgJson.result?.message_id;
+          console.log(`[Telegram Alert Sent] Ticket ${assignedId} delivered to chat ${telegramChatId}`);
+        } else {
+          telegramError = tgJson.description || "Telegram API error";
+          console.warn(`[Telegram Alert Warning]:`, tgJson);
+        }
+      } catch (err: any) {
+        telegramError = err?.message || "Telegram network error";
+        console.warn(`[Telegram Alert Error]:`, err);
+      }
+    }
+
+    const ticketRecord: SupportTicketRecord = {
+      id: assignedId,
+      category,
+      subject,
+      message,
+      priority,
+      status: ticketStatus,
+      createdAt: "Just now",
+      createdAtIso: new Date().toISOString(),
+      userEmail,
+      userName,
+      userId,
+      screenshot: screenshot || undefined,
+      url: url || undefined,
+      isSpam,
+      isGenuine,
+      urgency,
+      aiResponse: autoReply,
+      recommendedAction,
+      telegramSent,
+      telegramMessageId,
+    };
+
+    // Save ticket to persistent store
+    const allTickets = loadTickets();
+    const existingIndex = allTickets.findIndex(t => t.id === assignedId);
+    if (existingIndex >= 0) {
+      allTickets[existingIndex] = { ...allTickets[existingIndex], ...ticketRecord };
+    } else {
+      allTickets.unshift(ticketRecord);
+    }
+    saveTickets(allTickets);
+
+    return res.json({
+      success: true,
+      ticket: ticketRecord,
+    });
+  } catch (err: any) {
+    console.error("[Ticket Submit Error]:", err);
+    return res.status(500).json({ error: "Internal server error submitting ticket", details: err?.message });
+  }
+});
+
+// Sync tickets with backend (fetches latest status, Telegram admin replies, and updates)
+app.post("/api/support/sync-tickets", async (req, res) => {
+  try {
+    const { ticketIds = [], userEmail, userId } = req.body || {};
+    const allTickets = loadTickets();
+
+    const normalizedIds = Array.isArray(ticketIds) ? ticketIds.map((id: string) => String(id).toUpperCase()) : [];
+
+    const matched = allTickets.filter(t => {
+      if (normalizedIds.includes(t.id.toUpperCase())) return true;
+      if (userEmail && t.userEmail && t.userEmail.toLowerCase() === String(userEmail).toLowerCase()) return true;
+      if (userId && t.userId && t.userId === userId) return true;
+      return false;
+    });
+
+    return res.json({
+      success: true,
+      tickets: matched,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Failed to sync tickets", details: err?.message });
+  }
+});
+
+// Telegram Connection Test Endpoint
+app.post("/api/support/test-telegram", async (_req, res) => {
+  const telegramToken = process.env.TELEGRAM_BOT_TOKEN || "8676838230:AAGD11ZSi6uMslLWGKyedhU_E6GJPeX1OJE";
+  const telegramChatId = process.env.TELEGRAM_CHAT_ID || "7289466928";
+
+  try {
+    const tgRes = await fetch(`https://api.telegram.org/bot${telegramToken}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: telegramChatId,
+        text: `🔔 *Lernex AI Support Bot Alert*\n\nYour Telegram integration is verified and working! Genuine student support tickets will be delivered here instantly.\n\nTo reply to any ticket, simply swipe Reply to that ticket's message.`,
+        parse_mode: "Markdown",
+      }),
+    });
+    const data = await tgRes.json();
+    return res.json(data);
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
   }
 });
 

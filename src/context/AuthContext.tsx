@@ -31,55 +31,81 @@ interface AuthContextType {
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  updateUser?: (data: Partial<User>) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-const allowDemoMode = import.meta.env.DEV;
 
 async function fetchUserProfile(supabaseUser: SupabaseUser): Promise<User> {
   try {
     const { data: profileData, error } = await supabase
       .from('users')
-      .select('first_name, last_name, state, phone, plan_type')
+      .select('first_name, last_name, state, phone, plan_type, avatar_url')
       .eq('id', supabaseUser.id)
-      .single();
+      .maybeSingle();
 
     if (error) {
-      console.error("Error fetching user profile:", error);
-      // Return basic user data if profile fetch fails
-      return {
-        email: supabaseUser.email || "",
-        name: supabaseUser.user_metadata?.full_name || supabaseUser.email?.split("@")[0] || "User",
-        id: supabaseUser.id,
-        avatar: supabaseUser.user_metadata?.avatar_url,
-        plan_type: supabaseUser.user_metadata?.plan_type || "free",
-        created_at: supabaseUser.created_at,
-      };
+      console.warn("User profile fetch notice:", error.message || error);
+    }
+
+    const metaFullName =
+      supabaseUser.user_metadata?.full_name ||
+      supabaseUser.user_metadata?.name ||
+      [supabaseUser.user_metadata?.first_name, supabaseUser.user_metadata?.last_name].filter(Boolean).join(" ");
+
+    const computedName =
+      [profileData?.first_name, profileData?.last_name].filter(Boolean).join(" ") ||
+      metaFullName ||
+      supabaseUser.email?.split("@")[0] ||
+      "Learner";
+
+    const computedAvatar =
+      profileData?.avatar_url ||
+      supabaseUser.user_metadata?.avatar_url ||
+      supabaseUser.user_metadata?.picture ||
+      `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(supabaseUser.email || 'learner')}&backgroundColor=e2e8f0`;
+
+    // If profile row doesn't exist yet in public.users, self-heal and insert it
+    if (!profileData && isSupabaseConfigured) {
+      try {
+        const nameParts = computedName.split(" ");
+        const fName = nameParts[0] || "";
+        const lName = nameParts.slice(1).join(" ") || "";
+        await supabase.from('users').upsert({
+          id: supabaseUser.id,
+          email: supabaseUser.email,
+          first_name: fName || null,
+          last_name: lName || null,
+          avatar_url: computedAvatar,
+          plan_type: 'free',
+          role: 'student',
+        }, { onConflict: 'id' });
+      } catch (upsertErr) {
+        console.warn("Self-heal user profile upsert warning:", upsertErr);
+      }
     }
 
     return {
       email: supabaseUser.email || "",
-      name: [profileData?.first_name, profileData?.last_name].filter(Boolean).join(" ") ||
-            supabaseUser.user_metadata?.full_name ||
-            supabaseUser.email?.split("@")[0] ||
-            "User",
+      name: computedName,
       id: supabaseUser.id,
-      avatar: supabaseUser.user_metadata?.avatar_url,
+      avatar: computedAvatar,
       plan_type: profileData?.plan_type || supabaseUser.user_metadata?.plan_type || "free",
       created_at: supabaseUser.created_at,
-      first_name: profileData?.first_name,
-      last_name: profileData?.last_name,
+      first_name: profileData?.first_name || supabaseUser.user_metadata?.first_name || computedName.split(" ")[0],
+      last_name: profileData?.last_name || supabaseUser.user_metadata?.last_name || computedName.split(" ").slice(1).join(" "),
       state: profileData?.state,
       phone: profileData?.phone,
     };
   } catch (error) {
     console.error("Error in fetchUserProfile:", error);
+    const fallbackName = supabaseUser.user_metadata?.full_name || supabaseUser.email?.split("@")[0] || "Learner";
     return {
       email: supabaseUser.email || "",
-      name: supabaseUser.user_metadata?.full_name || supabaseUser.email?.split("@")[0] || "User",
+      name: fallbackName,
       id: supabaseUser.id,
-      avatar: supabaseUser.user_metadata?.avatar_url,
-      plan_type: supabaseUser.user_metadata?.plan_type || "free",
+      avatar: supabaseUser.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(supabaseUser.email || 'learner')}&backgroundColor=e2e8f0`,
+      plan_type: "free",
       created_at: supabaseUser.created_at,
     };
   }
@@ -131,77 +157,93 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+
     const initializeAuth = async () => {
-      // Fast fallback timeout so loading never hangs
       const timeoutId = setTimeout(() => {
-        setLoading((prev) => {
-          if (prev) return false;
-          return prev;
-        });
-      }, 1200);
-
-      // 1. Check for stored demo session first
-      try {
-        const storedDemo = allowDemoMode ? localStorage.getItem("lernex_demo_user") : null;
-        if (storedDemo) {
-          const parsed = JSON.parse(storedDemo);
-          setUser(parsed);
-          clearTimeout(timeoutId);
+        if (isMounted) {
           setLoading(false);
-          return;
         }
-        if (!allowDemoMode) {
-          localStorage.removeItem("lernex_demo_user");
-        }
-      } catch (e) {
-        console.warn("Could not read stored demo user:", e);
-      }
-
-      if (!isSupabaseConfigured) {
-        clearTimeout(timeoutId);
-        setUser(null);
-        setLoading(false);
-        return;
-      }
+      }, 1500);
 
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          const userProfile = await fetchUserProfile(session.user);
-          setUser(userProfile);
-        } else {
+        if (isSupabaseConfigured) {
+          // Priority 1: Check for real authenticated Supabase session first
+          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+          if (session?.user && !sessionError) {
+            localStorage.removeItem("lernex_demo_user");
+            const userProfile = await fetchUserProfile(session.user);
+            if (isMounted) {
+              setUser(userProfile);
+              clearTimeout(timeoutId);
+              setLoading(false);
+              return;
+            }
+          }
+        }
+
+        // Priority 2: Check for stored demo session ONLY if no real session exists
+        const storedDemo = localStorage.getItem("lernex_demo_user");
+        if (storedDemo) {
+          try {
+            const parsed = JSON.parse(storedDemo);
+            if (isMounted) {
+              setUser(parsed);
+              clearTimeout(timeoutId);
+              setLoading(false);
+              return;
+            }
+          } catch {
+            localStorage.removeItem("lernex_demo_user");
+          }
+        }
+
+        if (isMounted) {
           setUser(null);
         }
       } catch (error) {
         console.error("Auth initialization failed", error);
-        setUser(null);
+        if (isMounted) {
+          setUser(null);
+        }
       } finally {
         clearTimeout(timeoutId);
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     void initializeAuth();
 
     if (isSupabaseConfigured) {
-      // Listen for auth changes
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-        // If a demo user is active in localStorage, do not override unless signed out
-        if (localStorage.getItem("lernex_demo_user")) {
-          return;
-        }
+      // Listen for auth state changes
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (!isMounted) return;
+
         if (session?.user) {
+          localStorage.removeItem("lernex_demo_user");
           const userProfile = await fetchUserProfile(session.user);
-          setUser(userProfile);
-        } else {
-          setUser(null);
+          if (isMounted) {
+            setUser(userProfile);
+          }
+        } else if (event === "SIGNED_OUT") {
+          localStorage.removeItem("lernex_demo_user");
+          if (isMounted) {
+            setUser(null);
+          }
         }
       });
 
-      return () => subscription.unsubscribe();
+      return () => {
+        isMounted = false;
+        subscription.unsubscribe();
+      };
     }
 
-    return () => {};
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const loginAsDemo = async () => {
@@ -212,27 +254,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string) => {
     const trimmedEmail = email.trim().toLowerCase();
 
-    // Check for demo login
+    // Check for explicit demo credentials ONLY
     if (
-      trimmedEmail === "demo@lernexai.com" ||
-      trimmedEmail === "test@lernexai.com" ||
-      trimmedEmail === "demo@example.com" ||
-      trimmedEmail === "demo@test.com" ||
-      password === "demo1234" ||
-      (!isSupabaseConfigured && allowDemoMode)
+      trimmedEmail === DEMO_CREDENTIALS.email.toLowerCase() &&
+      password === DEMO_CREDENTIALS.password
     ) {
-      const demoProfile: User = {
-        ...DEMO_USER,
-        email: trimmedEmail || DEMO_CREDENTIALS.email,
-        name: trimmedEmail === DEMO_CREDENTIALS.email ? DEMO_CREDENTIALS.name : trimmedEmail.split("@")[0],
-      };
-      localStorage.setItem("lernex_demo_user", JSON.stringify(demoProfile));
-      setUser(demoProfile);
+      localStorage.setItem("lernex_demo_user", JSON.stringify(DEMO_USER));
+      setUser(DEMO_USER);
       return;
     }
 
+    if (!isSupabaseConfigured) {
+      throw new Error("Authentication service is unavailable. Please verify Supabase database configuration.");
+    }
+
     const { data, error } = await supabase.auth.signInWithPassword({
-      email,
+      email: trimmedEmail,
       password,
     });
 
@@ -248,33 +285,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signup = async (email: string, password: string, firstName?: string, lastName?: string, phone?: string) => {
     const trimmedEmail = email.trim().toLowerCase();
 
-    if (trimmedEmail === "demo@lernexai.com" || (!isSupabaseConfigured && allowDemoMode)) {
-      const customUser: User = {
-        id: `user-${Date.now()}`,
-        email: trimmedEmail,
-        name: [firstName?.trim(), lastName?.trim()].filter(Boolean).join(" ") || trimmedEmail.split("@")[0],
-        first_name: firstName,
-        last_name: lastName,
-        phone: phone,
-        plan_type: "free",
-        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(trimmedEmail)}&backgroundColor=e2e8f0`,
-        created_at: new Date().toISOString(),
-      };
-      localStorage.setItem("lernex_demo_user", JSON.stringify(customUser));
-      setUser(customUser);
-      return { sessionCreated: true };
+    if (!isSupabaseConfigured) {
+      throw new Error("Authentication service is unavailable. Please verify database configuration.");
     }
 
-    const fullName = [firstName?.trim(), lastName?.trim()].filter(Boolean).join(" ") || email.split("@")[0];
+    const fullName = [firstName?.trim(), lastName?.trim()].filter(Boolean).join(" ") || trimmedEmail.split("@")[0];
+    const callbackUrl = typeof window !== "undefined" ? `${window.location.origin}/auth/callback` : getAppUrl("/auth/callback");
 
     const { data, error } = await supabase.auth.signUp({
-      email,
+      email: trimmedEmail,
       password,
       options: {
-        emailRedirectTo: getAppUrl("/auth/callback"),
+        emailRedirectTo: callbackUrl,
         data: {
           full_name: fullName,
-          avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}&backgroundColor=e2e8f0`,
+          first_name: firstName?.trim() || null,
+          last_name: lastName?.trim() || null,
+          avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(trimmedEmail)}&backgroundColor=e2e8f0`,
           plan_type: "free"
         }
       }
@@ -283,18 +310,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error) throw error;
 
     if (data.user) {
-      // Also save to users table
+      localStorage.removeItem("lernex_demo_user");
       try {
         await supabase
           .from('users')
           .upsert({
             id: data.user.id,
-            email: email,
-            first_name: firstName || null,
-            last_name: lastName || null,
-            phone: phone || null,
-            plan_type: 'free'
-          });
+            email: trimmedEmail,
+            first_name: firstName?.trim() || null,
+            last_name: lastName?.trim() || null,
+            phone: phone?.trim() || null,
+            avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(trimmedEmail)}&backgroundColor=e2e8f0`,
+            plan_type: 'free',
+            role: 'student',
+          }, { onConflict: 'id' });
       } catch (profileError) {
         console.error("Error creating user profile:", profileError);
       }
@@ -311,19 +340,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loginWithGoogle = async () => {
     if (!isSupabaseConfigured) {
-      if (allowDemoMode) {
-        await loginAsDemo();
-        return;
-      }
-      throw new Error("Supabase is not configured for this deployment. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Vercel Production environment variables.");
+      throw new Error("Supabase is not configured for this deployment. Please verify VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.");
     }
 
     localStorage.removeItem("lernex_demo_user");
+    const callbackUrl = typeof window !== "undefined" ? `${window.location.origin}/auth/callback` : getAppUrl("/auth/callback");
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin + "/auth/callback",
+        redirectTo: callbackUrl,
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
@@ -347,6 +373,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const refreshUser = async () => {
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase.auth.getUser();
+        if (!error && data?.user) {
+          localStorage.removeItem("lernex_demo_user");
+          const userProfile = await fetchUserProfile(data.user);
+          setUser(userProfile);
+          return;
+        }
+      } catch (e) {
+        console.warn("Error refreshing Supabase user:", e);
+      }
+    }
+
     const storedDemo = localStorage.getItem("lernex_demo_user");
     if (storedDemo) {
       try {
@@ -355,20 +395,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch {}
     }
 
-    if (!isSupabaseConfigured) {
+    setUser(null);
+  };
+
+  const updateUser = async (data: Partial<User>) => {
+    if (isDemoUser(user) || !user?.id || localStorage.getItem("lernex_demo_user")) {
+      const updatedUser: User = {
+        ...(user || DEMO_USER),
+        ...data,
+        name: [data.first_name, data.last_name].filter(Boolean).join(" ") || data.name || user?.name || "Learner",
+      };
+      localStorage.setItem("lernex_demo_user", JSON.stringify(updatedUser));
+      setUser(updatedUser);
       return;
     }
 
-    const { data, error } = await supabase.auth.getUser();
-    if (error) throw error;
-    if (data.user) {
-      const userProfile = await fetchUserProfile(data.user);
-      setUser(userProfile);
+    if (isSupabaseConfigured && user?.id) {
+      const updatePayload: Record<string, any> = {};
+      if (data.first_name !== undefined) updatePayload.first_name = data.first_name;
+      if (data.last_name !== undefined) updatePayload.last_name = data.last_name;
+      if (data.phone !== undefined) updatePayload.phone = data.phone;
+      if (data.state !== undefined) updatePayload.state = data.state;
+      if (data.avatar !== undefined) updatePayload.avatar_url = data.avatar;
+
+      if (Object.keys(updatePayload).length > 0) {
+        const { error } = await supabase
+          .from('users')
+          .update(updatePayload)
+          .eq('id', user.id);
+        if (error) {
+          console.error("Failed to update user profile in users table:", error);
+          throw error;
+        }
+      }
+
+      await refreshUser();
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, loginAsDemo, signup, loginWithGoogle, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, loading, login, loginAsDemo, signup, loginWithGoogle, logout, refreshUser, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

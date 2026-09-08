@@ -203,12 +203,10 @@ export function openRazorpayCheckout(options: {
 }): Promise<void> {
   return new Promise((resolve) => {
     let handled = false;
-    let watchdogTimer: any = null;
 
     const safeResolve = () => {
       if (!handled) {
         handled = true;
-        if (watchdogTimer) clearTimeout(watchdogTimer);
         resolve();
       }
     };

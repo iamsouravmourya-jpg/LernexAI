@@ -10,12 +10,17 @@ import {
 } from "lucide-react";
 import { Link } from "wouter";
 import { useAuth } from "@/context/AuthContext";
-import { fetchEnrolledCourses, type EnrolledCourse } from "@/lib/course";
+import { fetchEnrolledCourses, fetchUserLearningStats, type EnrolledCourse, type UserLearningStats } from "@/lib/course";
 import DashboardLayout from "@/components/DashboardLayout";
 
 export default function MyLearning() {
   const { user } = useAuth();
   const [courses, setCourses] = useState<EnrolledCourse[]>([]);
+  const [learningStats, setLearningStats] = useState<UserLearningStats>({
+    streakDays: 0,
+    coursesInProgress: 0,
+    hoursLearned: "0.0h"
+  });
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -30,8 +35,14 @@ export default function MyLearning() {
       setLoading(true);
 
       try {
-        const enrolledCourses = await fetchEnrolledCourses(user.id);
-        if (active) setCourses(enrolledCourses);
+        const [enrolledCourses, stats] = await Promise.all([
+          fetchEnrolledCourses(user.id),
+          fetchUserLearningStats(user.id)
+        ]);
+        if (active) {
+          setCourses(enrolledCourses);
+          setLearningStats(stats);
+        }
       } catch (err) {
         console.error("Failed to load enrolled courses:", err);
       } finally {
@@ -79,7 +90,9 @@ export default function MyLearning() {
               <Flame className="w-6 h-6 fill-teal-500 text-teal-500" />
             </div>
             <div>
-              <div className="text-2xl font-black text-slate-900">12 days</div>
+              <div className="text-2xl font-black text-slate-900">
+                {learningStats.streakDays === 1 ? "1 day" : `${learningStats.streakDays} days`}
+              </div>
               <div className="text-xs font-semibold text-slate-500">Current streak</div>
             </div>
           </div>
@@ -101,7 +114,7 @@ export default function MyLearning() {
               <Clock className="w-6 h-6 text-teal-600" />
             </div>
             <div>
-              <div className="text-2xl font-black text-slate-900">8.5h</div>
+              <div className="text-2xl font-black text-slate-900">{learningStats.hoursLearned}</div>
               <div className="text-xs font-semibold text-slate-500">Learned this month</div>
             </div>
           </div>

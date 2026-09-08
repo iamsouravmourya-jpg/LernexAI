@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth, isDemoUser } from "@/context/AuthContext";
 import { 
   ArrowRight, 
   BookOpen, 
@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
-import { fetchEnrolledCourses, fetchCourses, EnrolledCourse, Course } from "@/lib/course";
+import { fetchEnrolledCourses, fetchCourses, fetchUserLearningStats, EnrolledCourse, Course, UserLearningStats } from "@/lib/course";
 import AiBuilderModal from "@/components/AiBuilderModal";
 
 export default function Dashboard() {
@@ -25,6 +25,11 @@ export default function Dashboard() {
   const [liveCourses, setLiveCourses] = useState<Course[]>([]);
   const [isBuilderModalOpen, setIsBuilderModalOpen] = useState(false);
   const [selectedTopic, setSelectedTopic] = useState("");
+  const [learningStats, setLearningStats] = useState<UserLearningStats>({
+    streakDays: 0,
+    coursesInProgress: 0,
+    hoursLearned: "0.0h"
+  });
 
   useEffect(() => {
     let active = true;
@@ -37,9 +42,13 @@ export default function Dashboard() {
         }
 
         if (user?.id) {
-          const enrolled = await fetchEnrolledCourses(user.id);
+          const [enrolled, stats] = await Promise.all([
+            fetchEnrolledCourses(user.id),
+            fetchUserLearningStats(user.id)
+          ]);
           if (active) {
             setEnrolledCourses(enrolled);
+            setLearningStats(stats);
           }
         }
       } catch (err) {
@@ -75,7 +84,7 @@ export default function Dashboard() {
     year: "numeric",
   }).format(new Date());
 
-  const displayName = user?.name || "Demo Student";
+  const displayName = user?.name || user?.email?.split('@')[0] || (isDemoUser(user) ? "Demo Student" : "Student");
 
   return (
     <DashboardLayout>
@@ -182,7 +191,9 @@ export default function Dashboard() {
               <Flame className="w-6 h-6 fill-teal-500 text-teal-500" />
             </div>
             <div>
-              <div className="text-2xl font-black text-slate-900">12 days</div>
+              <div className="text-2xl font-black text-slate-900">
+                {learningStats.streakDays === 1 ? "1 day" : `${learningStats.streakDays} days`}
+              </div>
               <div className="text-xs font-semibold text-slate-500">Current streak</div>
             </div>
           </div>
@@ -206,7 +217,7 @@ export default function Dashboard() {
               <Clock className="w-6 h-6 text-teal-600" />
             </div>
             <div>
-              <div className="text-2xl font-black text-slate-900">8.5h</div>
+              <div className="text-2xl font-black text-slate-900">{learningStats.hoursLearned}</div>
               <div className="text-xs font-semibold text-slate-500">Learned this month</div>
             </div>
           </div>

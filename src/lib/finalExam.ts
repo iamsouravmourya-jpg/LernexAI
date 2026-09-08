@@ -240,18 +240,41 @@ function extractExamQuestionsAndMeta(course: any): ExamQuestionWithMeta[] {
   return result;
 }
 
-export async function fetchFinalExamStatus(courseId: string): Promise<FinalExamAttemptSummary | null> {
-  const isTestCourse = courseId.startsWith("course-quick-") || courseId.startsWith("course-test-") || courseId.startsWith("test-");
-  if (isSupabaseConfigured && !isTestCourse) {
+export async function fetchFinalExamStatus(firstArg: string, secondArg?: string): Promise<FinalExamAttemptSummary | null> {
+  const courseId = secondArg ? secondArg : firstArg;
+  const passedUserId = secondArg ? firstArg : undefined;
+
+  if (isSupabaseConfigured) {
     try {
-      const { data, error } = await supabase.functions.invoke<{ lastAttempt: FinalExamAttemptSummary | null }>("final-exam", {
-        body: { action: "status", courseId },
-      });
-      if (!error && data) {
-        return data.lastAttempt ?? null;
+      let targetUserId = passedUserId;
+      if (!targetUserId || !isValidUuid(targetUserId)) {
+        const { data: { user } } = await supabase.auth.getUser();
+        targetUserId = user?.id;
+      }
+
+      if (targetUserId && isValidUuid(targetUserId)) {
+        const { data, error } = await supabase
+          .from("quiz_attempts")
+          .select("*")
+          .eq("user_id", targetUserId)
+          .eq("quiz_id", `exam-${courseId}`)
+          .order("completed_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (!error && data) {
+          return {
+            id: data.id,
+            score: data.score,
+            passed: data.score >= 40,
+            started_at: data.completed_at,
+            completed_at: data.completed_at,
+            time_limit_minutes: 30,
+          };
+        }
       }
     } catch (e) {
-      console.warn("Supabase final-exam status failed, checking local storage:", e);
+      console.warn("Supabase fetchFinalExamStatus error:", e);
     }
   }
 
@@ -397,6 +420,24 @@ export async function submitFinalExam(
     completed_at: new Date().toISOString(),
     time_limit_minutes: 30,
   };
+
+  // Persist to Supabase quiz_attempts table
+  if (isSupabaseConfigured) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user && isValidUuid(user.id)) {
+        await supabase.from("quiz_attempts").insert({
+          user_id: user.id,
+          quiz_id: `exam-${courseId}`,
+          score,
+          answers,
+          completed_at: new Date().toISOString(),
+        });
+      }
+    } catch (dbErr) {
+      console.warn("Supabase saving quiz_attempts error:", dbErr);
+    }
+  }
 
   try {
     localStorage.setItem(`lernex_exam_attempt_${courseId}`, JSON.stringify(attemptSummary));

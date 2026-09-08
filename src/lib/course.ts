@@ -181,21 +181,16 @@ export async function fetchCourses(category?: string): Promise<Course[]> {
 
       if (!error && data && data.length > 0) {
         const normalized = data.map(course => normalizeCourse(course));
-        // Ensure testQuick verification course is available at the front for seamless end-to-end testing
-        const quickTestFromDb = normalized.find(c => c.id === 'course-quick-test');
-        const otherCourses = normalized.filter(c => c.id !== 'course-quick-test');
-        const combined = [quickTestFromDb || TEST_COURSES[0], ...otherCourses];
-
         return category && category !== 'All'
-          ? combined.filter(c => c.category?.toLowerCase() === category.toLowerCase())
-          : combined;
+          ? normalized.filter(c => c.category?.toLowerCase() === category.toLowerCase())
+          : normalized;
       }
     } catch (e) {
       console.warn('Supabase fetchCourses failed, falling back to verified courses:', e);
     }
   }
 
-  // Fallback to verified courses (Python & Java) ONLY if Supabase is offline
+  // Fallback to verified courses ONLY if Supabase is offline
   const allDefaults = [...TEST_COURSES];
   if (category && category !== 'All') {
     return allDefaults.filter(c => c.category?.toLowerCase() === category.toLowerCase());
@@ -205,11 +200,6 @@ export async function fetchCourses(category?: string): Promise<Course[]> {
 
 // Fetch single course with modules and lessons
 export async function fetchCourseById(courseId: string): Promise<Course | null> {
-  // 0. Check Test courses from /Courses database folder first
-  if (TEST_COURSES_RECORD[courseId]) {
-    return TEST_COURSES_RECORD[courseId];
-  }
-
   // 1. Check local custom generated courses first
   const customCourses = getCustomCourses();
   const foundCustom = customCourses.find((c) => c.id === courseId);
@@ -741,4 +731,58 @@ export async function updateEnrollmentProgress(
   } catch {}
 
   return true;
+}
+
+export interface UserLearningStats {
+  streakDays: number;
+  coursesInProgress: number;
+  hoursLearned: string;
+}
+
+export async function fetchUserLearningStats(userId: string): Promise<UserLearningStats> {
+  let completedCount = 0;
+  let enrolledCount = 0;
+
+  if (isSupabaseConfigured && isValidUuid(userId)) {
+    try {
+      const [progressRes, enrollRes] = await Promise.all([
+        supabase
+          .from('user_progress')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', userId)
+          .eq('is_completed', true),
+        supabase
+          .from('user_enrollments')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', userId),
+      ]);
+
+      completedCount = progressRes.count || 0;
+      enrolledCount = enrollRes.count || 0;
+    } catch (e) {
+      console.warn("fetchUserLearningStats DB error:", e);
+    }
+  }
+
+  // Fallback check
+  if (completedCount === 0 && typeof localStorage !== "undefined") {
+    try {
+      const raw = localStorage.getItem(`lernex_progress_${userId}`);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          completedCount = parsed.filter((p: any) => p.is_completed).length;
+        }
+      }
+    } catch {}
+  }
+
+  const hours = ((completedCount * 15) / 60).toFixed(1);
+  const streak = completedCount > 0 ? 1 : 0;
+
+  return {
+    streakDays: streak,
+    coursesInProgress: enrolledCount,
+    hoursLearned: `${hours}h`,
+  };
 }

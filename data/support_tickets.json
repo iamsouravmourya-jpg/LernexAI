@@ -1,0 +1,24 @@
+[
+  {
+    "id": "TKT-7552",
+    "category": "Report a Bug",
+    "subject": "course py",
+    "message": "i see a issue in a course isme py ka course thoda basic se nhi hai sidha intermediate se hai",
+    "priority": "high",
+    "status": "Resolved",
+    "createdAt": "Today at 2:25 PM",
+    "createdAtIso": "2026-09-08T08:55:06.000Z",
+    "userEmail": "demo@lernexai.com",
+    "userName": "demo",
+    "isSpam": false,
+    "isGenuine": true,
+    "urgency": "normal",
+    "aiResponse": "Thank you for the feedback on the Python course. We will evaluate the difficulty progression from fundamentals to intermediate concepts.",
+    "recommendedAction": "Check the course difficulty level and content; update or flag if mislabeled.",
+    "telegramSent": true,
+    "telegramMessageId": 2,
+    "adminReply": "thnaks for reaching us we already look this matter solve this issue pls check again",
+    "adminReplyTime": "8/9/2026, 2:30:25 pm",
+    "adminName": "Sourav Mourya 💙"
+  }
+]
