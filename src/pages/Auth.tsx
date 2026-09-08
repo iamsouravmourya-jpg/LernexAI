@@ -9,7 +9,6 @@ import {
   User,
   Phone,
   ArrowLeft,
-  Zap,
   LogIn,
   Eye,
   EyeOff,
@@ -22,7 +21,7 @@ import {
 import { MeshGradientBackground, PageEffects, GradientText } from "@/components/anim";
 
 export default function Auth() {
-  const { login, signup, loginWithGoogle, loginAsDemo, logout, user } = useAuth();
+  const { login, signup, loginWithGoogle, logout, user } = useAuth();
   const [, setLocation] = useLocation();
 
   // Detect ?mode=signup or #signup from URL
@@ -58,27 +57,12 @@ export default function Auth() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [demoLoading, setDemoLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState("");
   const nextPath = typeof window !== "undefined"
     ? new URLSearchParams(window.location.search).get("next")
     : null;
 
-
-  const handleDemoLogin = async () => {
-    try {
-      setError("");
-      setDemoLoading(true);
-      await loginAsDemo();
-      setLocation(nextPath || "/dashboard", { replace: true });
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Demo login failed";
-      setError(message);
-    } finally {
-      setDemoLoading(false);
-    }
-  };
 
   const handleGoogleLogin = async () => {
     try {
@@ -271,21 +255,6 @@ export default function Auth() {
 
           {/* Main Container */}
           <div className="relative rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-xl hover:border-cyan-500/40 transition-all duration-300">
-            {isDemoUser(user) && (
-              <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50/90 p-3.5 text-xs text-amber-900 flex items-center justify-between">
-                <div className="leading-relaxed">
-                  <span className="font-bold">Demo Preview Active:</span> Sign in to your real account below.
-                </div>
-                <button
-                  type="button"
-                  onClick={() => void logout()}
-                  className="ml-3 shrink-0 px-2.5 py-1 rounded-lg bg-amber-200/80 hover:bg-amber-300 text-amber-950 font-semibold transition-colors"
-                >
-                  Exit Demo
-                </button>
-              </div>
-            )}
-
             {/* TAB SELECTOR WITH FRAMER MOTION */}
             <div className="mb-6 flex rounded-2xl border border-slate-200 bg-slate-100 p-1.5">
               <button
@@ -353,49 +322,6 @@ export default function Auth() {
                   ? "Zero credit card required. Full instant access to courses, AI tutor, and sandboxes."
                   : "Sign in to resume your active learning path and projects."}
               </p>
-            </div>
-
-            {/* INSTANT DEMO ACCESS CARD */}
-            <div className="mb-6 overflow-hidden rounded-2xl border border-cyan-200 bg-cyan-50/50 p-4 shadow-sm">
-              <div className="flex items-center justify-between gap-2 mb-2.5">
-                <div className="flex items-center gap-2">
-                  <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-cyan-100 text-cyan-700 border border-cyan-200">
-                    <Zap className="h-3.5 w-3.5" />
-                  </div>
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-cyan-800">
-                    Instant Demo Access
-                  </span>
-                </div>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-100 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse" />
-                  Ready
-                </span>
-              </div>
-
-                <p className="mb-3 rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-600">
-                  Demo access is limited to this one-click preview session. It is not a real account and does not access private server data.
-                </p>
-
-                <div className="flex flex-col gap-2">
-                <button
-                  type="button"
-                  onClick={handleDemoLogin}
-                  disabled={demoLoading || isLoading}
-                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-600 to-emerald-600 px-3.5 py-2.5 text-xs font-bold text-white shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50"
-                >
-                  {demoLoading ? (
-                    <>
-                      <span className="h-3.5 w-3.5 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                      Signing in...
-                    </>
-                  ) : (
-                    <>
-                      <LogIn className="h-3.5 w-3.5" />
-                      <span>1-Click Demo Login</span>
-                    </>
-                  )}
-                </button>
-              </div>
             </div>
 
             {/* Error message */}
