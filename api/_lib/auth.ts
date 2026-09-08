@@ -26,9 +26,14 @@ export async function requireUser(req: VercelRequest): Promise<User | null> {
   }
 }
 
-export function setCors(res: { setHeader: (name: string, value: string) => void }) {
-  const origin = process.env.APP_URL || process.env.VITE_APP_URL || "";
-  res.setHeader("Access-Control-Allow-Origin", origin || "https://www.lernexai.site");
+export function setCors(
+  res: { setHeader: (name: string, value: string) => void },
+  req?: { headers?: Record<string, string | string[] | undefined> }
+) {
+  const origin = (typeof req?.headers?.origin === "string" && req.headers.origin)
+    ? req.headers.origin
+    : (process.env.APP_URL || process.env.VITE_APP_URL || "*");
+  res.setHeader("Access-Control-Allow-Origin", origin);
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
   res.setHeader("Vary", "Origin");
