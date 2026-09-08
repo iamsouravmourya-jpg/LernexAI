@@ -53,7 +53,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
-  if (!(await requireUser(req))) return res.status(401).json({ error: "Authentication required" });
+  if (!(await requireUser(req))) return res.status(401).json({ error: "Authentication required. Please sign in again." });
 
   try {
     const { amount, currency = "INR", receipt, notes = {}, purpose = "ai_credits" } = req.body || {};

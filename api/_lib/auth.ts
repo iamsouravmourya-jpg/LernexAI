@@ -2,16 +2,23 @@ import type { VercelRequest } from "@vercel/node";
 import { createClient, type User } from "@supabase/supabase-js";
 
 export async function requireUser(req: VercelRequest): Promise<User | null> {
-  const authorization = req.headers.authorization || "";
-  if (!authorization.startsWith("Bearer ")) return null;
+  try {
+    const authorization = Array.isArray(req.headers.authorization)
+      ? req.headers.authorization[0] || ""
+      : req.headers.authorization || "";
+    if (!authorization.startsWith("Bearer ")) return null;
 
-  const url = (process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || "").trim();
-  const anonKey = (process.env.VITE_SUPABASE_ANON_KEY || "").trim();
-  if (!url || !anonKey) return null;
+    const url = (process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || "").trim();
+    const anonKey = (process.env.VITE_SUPABASE_ANON_KEY || "").trim();
+    if (!url || !anonKey) return null;
 
-  const client = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
-  const { data, error } = await client.auth.getUser(authorization.slice(7));
-  return error ? null : data.user;
+    const client = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    const { data, error } = await client.auth.getUser(authorization.slice(7));
+    return error ? null : data.user;
+  } catch (error) {
+    console.error("[Auth] Supabase token validation failed:", error);
+    return null;
+  }
 }
 
 export function setCors(res: { setHeader: (name: string, value: string) => void }) {
