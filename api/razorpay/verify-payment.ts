@@ -14,10 +14,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
-  const authUser = await requireUser(req);
-  if (!authUser) return res.status(401).json({ error: "Authentication required" });
+  let authUser: any = null;
+  try {
+    authUser = await requireUser(req);
+  } catch {}
 
   try {
+    let body = req.body;
+    if (typeof body === "string") {
+      try {
+        body = JSON.parse(body);
+      } catch {
+        body = {};
+      }
+    }
+    body = body || {};
+
     const {
       razorpay_order_id,
       razorpay_payment_id,
@@ -25,9 +37,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       item_type,
       user_id,
       metadata
-    } = req.body || {};
+    } = body;
 
-    const effectiveUserId = user_id || authUser.id;
+    const effectiveUserId = user_id || authUser?.id;
 
     const key_secret = (
       process.env.RAZORPAY_KEY_SECRET ||

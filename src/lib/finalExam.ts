@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from "./supabase";
+import { supabase, isSupabaseConfigured, isValidUuid } from "./supabase";
 import { fetchCourseById } from "./course";
 
 export interface FinalExamQuestion {
