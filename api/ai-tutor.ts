@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import crypto from "crypto";
 import Groq from "groq-sdk";
-import { requireUser, setCors } from "./_lib/auth";
+import { requireUser, setCors } from "./_lib/auth.js";
 
 let groqKeyRotationIndex = 0;
 
