@@ -10,9 +10,9 @@
 
 ---
 
-## 🌟 Executive Overview
+## Executive Overview
 
-**LernexAI** is a modern, full-stack educational web application engineered for hands-on technical training. It combines structured computer science curricula, randomized checkpoint quizzes, a browser-proctored examination room, and verifiable academic credential issuance with an ultra-fast streaming AI Tutor.
+**LernexAI** is a full-stack learning platform for hands-on technical training. It combines structured courses, checkpoint quizzes, a browser-based final exam, verifiable certificates, AI tutoring, support tickets, and Razorpay payments.
 
 ```
                                   ┌────────────────────────┐
@@ -30,8 +30,8 @@
                     └─────────────────────────┼─────────────────────────┘
                                               ▼
                                  ┌────────────────────────┐
-                                 │   Express API Server   │
-                                 │   (Node.js + ESBuild)  │
+                                  │   Vercel API Routes    │
+                                  │   + Express dev server │
                                  └────────────┬───────────┘
                                               │
                          ┌────────────────────┴────────────────────┐
@@ -48,7 +48,7 @@
 
 ### 1. 📚 Rich Curriculum & Learning Experience
 - **Structured Hierarchy**: Courses are partitioned into clear Modules, Lessons, and Checkpoint Quizzes.
-- **Resilient Dual Data Layer**: Courses synchronize seamlessly with Supabase tables (`courses`, `modules`, `lessons`, `quizzes`) with high-fidelity local fallback JSON catalogs in `/Courses`.
+- **Supabase-backed Catalog**: Courses, modules, lessons, quizzes, progress, and profiles use Supabase with the app's local data fallbacks where available.
 - **Distraction-Free UI**: Responsive collapsible drawer navigation, reading progress trackers, syntax highlighting, and clean single-touch completion toggles.
 
 ### 2. 🧠 Smart Checkpoint Quizzes
@@ -71,9 +71,10 @@
 - **Print & PDF Support**: Vector-sharp print stylesheets tailored for high-resolution document export.
 - **Payment Processing**: Integrated Razorpay checkout workflow for certificate claim processing.
 
-### 5. 🤖 Streaming AI Tutor (4-Key Groq Failover)
-- **Ultra-Fast Streaming**: Sub-second token delivery powered by Groq SDK (Llama 3.3 70B & 8B models).
-- **Multi-Key Round-Robin Rotation**: Rotates through 4 independent API keys with automatic failover, eliminating rate limits and single-point failures.
+### 5. 🤖 AI Tutor and Support
+- **Context-Aware Tutor**: Uses lesson context and authenticated requests to provide practical explanations.
+- **Groq Failover**: Supports multiple server-side Groq keys and local fallback responses.
+- **Support Desk Flow**: AI triage classifies tickets, sends genuine requests to Telegram, and syncs replies back to the learner.
 - **Lesson-Context Aware**: Ingests current topic summaries to provide targeted explanations without leaking answers.
 - **Credit Quota Management**: Built-in daily credit allocation system with plan upgrades.
 
@@ -85,10 +86,10 @@
 |---|---|
 | **Frontend** | React 18, TypeScript, Vite, Tailwind CSS, Lucide React, Wouter |
 | **Animation & UX** | Framer Motion, Canvas Confetti, Radix UI Primitives |
-| **Backend** | Express 5, Node.js, TSX (Dev), ESBuild (Prod Bundle) |
+| **Backend** | Vercel serverless API routes, Express 5 local server, Node.js |
 | **Database & Auth** | Supabase (PostgreSQL, Row-Level Security, Auth) |
 | **AI Inference** | Groq Cloud SDK, Google GenAI SDK (Gemini) |
-| **Payments** | Razorpay (Node SDK & Client-Side Checkout) |
+| **Payments** | Razorpay REST API & Client-Side Checkout |
 | **Utilities** | QRCode, Sonner, clsx, tailwind-merge |
 
 ---
@@ -97,20 +98,12 @@
 
 ```
 lernex-ai/
-├── Courses/                  # Standalone local course catalogs & fallbacks
-│   ├── index.ts              # Course registry
-│   ├── test-1.json           # Python Programming Masterclass
-│   ├── test-2.json           # Core Java & OOP Masterclass
-│   ├── test-3.json           # C Programming & Systems Architecture
-│   ├── test-4.json           # Modern C++ & Object-Oriented Design
-│   ├── test-5.json           # Responsive HTML5 & CSS3 Masterclass
-│   ├── test-6.json           # SQL & Relational Database Architecture
-│   ├── test-7.json           # Fast-Track Python & Web Sprint
-│   └── test-quick.json       # 1-Click Verification Test Course
-├── public/                   # Public static assets & vectors
-├── scripts/                  # Curriculum generators & Supabase seeding utilities
-│   ├── push_all_courses_to_supabase.ts
-│   └── audit_all_courses.ts
+├── api/                      # Vercel serverless API routes
+│   ├── ai-tutor.ts           # Authenticated AI Tutor endpoint
+│   ├── razorpay/             # Order creation and payment verification
+│   └── support/              # Ticket submission and Telegram sync
+├── public/                   # Public static assets and Loader.io verification
+├── data/                     # Runtime support data used by the local server
 ├── src/
 │   ├── components/           # Reusable UI components
 │   │   ├── AcademicCertificate.tsx # Guilloche certificate renderer
@@ -132,8 +125,8 @@ lernex-ai/
 │   ├── App.tsx               # Route declarations & protected route guards
 │   ├── main.tsx              # Application DOM entry point
 │   └── index.css             # Tailwind base styles & custom components
-├── server.ts                 # Express backend API & Vite development proxy
-├── supabase_master_schema.sql# PostgreSQL database schema & RLS policies
+├── server.ts                 # Express backend and Vite development server
+├── supabase/                 # Schema, functions, and database migrations
 ├── .env.example              # Environment variables template
 ├── package.json              # Dependencies and execution scripts
 ├── tailwind.config.js        # Design tokens & color palette
@@ -173,9 +166,9 @@ lernex-ai/
    ```
    Open `.env` and fill in your credentials:
    ```env
-   # LLM Keys
-   GROQ_API_KEY_1=gsk_your_groq_key_here
-   GEMINI_API_KEY=your_gemini_key_here
+   # AI
+   GROQ_API_KEY=gsk_your_groq_key_here
+   GROQ_API_KEY_1=gsk_optional_fallback_key_here
 
    # Supabase
    VITE_SUPABASE_URL=https://your-project.supabase.co
@@ -188,8 +181,8 @@ lernex-ai/
    VITE_RAZORPAY_KEY_ID=rzp_test_xxxx
    ```
 
-4. **Initialize Database (Optional)**:
-   Run the SQL statements in `supabase_master_schema.sql` within your Supabase SQL Editor to provision tables, foreign keys, and Row-Level Security (RLS) policies.
+4. **Initialize Database**:
+   Run the required schema from `supabase/master_schema.sql` in Supabase SQL Editor. Then run the latest hardening migration from `supabase/migrations/20260908000200_harden_rls_and_rpc.sql`.
 
 5. **Start the Development Server**:
    ```bash
@@ -206,7 +199,7 @@ lernex-ai/
 | `npm run dev` | Boots the full-stack server (`server.ts`) via `tsx` with Vite middleware |
 | `npm run build` | Compiles client assets (`vite build`) and bundles backend server (`esbuild`) to `dist/server.cjs` |
 | `npm run start` | Runs the compiled production server (`node dist/server.cjs`) |
-| `npm run typecheck`| Runs TypeScript compiler diagnostics across all source files |
+| `npm run typecheck` | Runs TypeScript compiler diagnostics across the client source files |
 | `npm run lint` | Validates codebase against ESLint rules |
 
 ---
@@ -214,9 +207,11 @@ lernex-ai/
 ## 🔒 Security & Best Practices
 
 - **Never commit `.env`**: Credentials, service role keys, and API tokens are kept out of source control.
-- **Server-Side API Keys**: AI provider keys and payment secrets reside strictly on the server (`server.ts`) and are never exposed to browser bundles.
-- **Client Security**: Client-side environment variables strictly use the `VITE_` prefix for safe non-sensitive configuration.
-- **Proctored Integrity**: Anti-cheat triggers use tamper-resistant event observers on the window and visibility APIs.
+- **Server-Side API Keys**: AI provider keys, Telegram credentials, Supabase service-role keys, and payment secrets stay in server environment variables.
+- **Authenticated APIs**: AI Tutor, payment order creation, payment verification, and support synchronization validate Supabase access tokens server-side.
+- **Payment Safety**: Razorpay order amounts are allowlisted server-side and signatures are verified before fulfillment.
+- **Database Security**: Apply the Supabase hardening migration after the base schema; it restricts private data and privilege-changing RPCs.
+- **Browser Reality**: DevTools cannot be disabled reliably. Security is enforced by server authorization and database RLS, not by hiding the browser console.
 
 ---
 
