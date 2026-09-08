@@ -317,10 +317,10 @@ export default function Support() {
         try {
           await supabase.from("course_requests").insert({
             user_id: user?.id && isValidUuid(user.id) ? user.id : null,
-            topic: subject.trim(),
-            description: message.trim(),
+            course_topic: subject.trim(),
+            details: message.trim(),
             votes: 1,
-            status: "requested"
+            status: "pending"
           });
         } catch (dbErr) {
           console.warn("Course request DB insert error:", dbErr);

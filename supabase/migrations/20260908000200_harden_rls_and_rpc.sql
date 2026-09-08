@@ -1,4 +1,19 @@
 -- Harden private profile, purchase, request, and privilege-changing RPC access.
+CREATE TABLE IF NOT EXISTS public.course_requests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  user_email TEXT,
+  course_topic TEXT NOT NULL,
+  target_level TEXT DEFAULT 'Beginner to Advanced' CHECK (target_level IN ('Beginner', 'Beginner to Advanced', 'Advanced')),
+  details TEXT,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'under_review', 'building', 'published')),
+  votes INTEGER DEFAULT 1,
+  created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now())
+);
+
+CREATE INDEX IF NOT EXISTS idx_course_requests_user_id ON public.course_requests(user_id);
+CREATE INDEX IF NOT EXISTS idx_course_requests_status ON public.course_requests(status);
+
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.certificate_purchases ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.course_requests ENABLE ROW LEVEL SECURITY;
