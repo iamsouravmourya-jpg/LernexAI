@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import type { User } from "@supabase/supabase-js";
 import crypto from "crypto";
 import Groq from "groq-sdk";
 import { requireUser, setCors } from "./_lib/auth.js";
