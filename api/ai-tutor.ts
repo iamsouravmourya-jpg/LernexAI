@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import crypto from "crypto";
+import Groq from "groq-sdk";
 
 let groqKeyRotationIndex = 0;
 
@@ -139,9 +140,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // 1. Groq API with 4-key round-robin rotation and explicit await
     try {
-      const GroqModule = await import("groq-sdk");
-      const Groq = GroqModule.default || GroqModule;
-
       const groqCandidateKeys = [
         process.env.GROQ_API_KEY_1,
         process.env.GROQ_API_KEY_2,
