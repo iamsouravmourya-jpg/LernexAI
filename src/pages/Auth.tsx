@@ -164,7 +164,9 @@ export default function Auth() {
       setLocation("/dashboard", { replace: true });
     } catch (err: unknown) {
       const rawMessage = err instanceof Error ? err.message : "";
-      const message = /email address.*invalid|invalid email/i.test(rawMessage)
+      const message = /rate limit|email rate limit|too many requests/i.test(rawMessage)
+        ? "Signup emails are temporarily rate-limited by Supabase. Please wait a few minutes and try again, or use an already verified account to sign in."
+        : /email address.*invalid|invalid email/i.test(rawMessage)
         ? "Please enter a valid email address, such as name@example.com."
         : rawMessage || "Authentication failed. Please check your details and try again.";
       setError(message);
