@@ -1,5 +1,4 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import type { User } from "@supabase/supabase-js";
 import crypto from "crypto";
 import Groq from "groq-sdk";
 import { requireUser, setCors } from "./_lib/auth.js";
@@ -88,18 +87,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     body = body || {};
 
-    let authenticatedUser = await requireUser(req);
-    if (!authenticatedUser) {
-      // Graceful fallback for demo or preview sessions so learning is never blocked
-      authenticatedUser = {
-        id: "00000000-0000-0000-0000-000000000001",
-        email: "demo@lernexai.com",
-        app_metadata: { plan_type: "pro" },
-        user_metadata: { name: "Demo Student", full_name: "Demo Student" },
-        aud: "authenticated",
-        created_at: new Date().toISOString(),
-      } as unknown as User;
-    }
+    const authenticatedUser = await requireUser(req);
+    if (!authenticatedUser) return res.status(401).json({ error: "Authentication required" });
 
     const action = body.action || "ask";
     const isPro = authenticatedUser.app_metadata?.plan_type === "pro";

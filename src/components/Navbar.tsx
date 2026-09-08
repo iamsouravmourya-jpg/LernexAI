@@ -111,7 +111,7 @@ export default function Navbar() {
             onClick={() => setLocation(user ? '/dashboard' : '/auth')}
             className="text-xs font-black shadow-md shadow-cyan-500/20"
           >
-            {user ? 'Go to Dashboard' : 'Get Started Free'}
+            {user ? 'Go to Dashboard' : 'Start Free Trial'}
           </MagneticButton>
         </div>
 
@@ -169,7 +169,7 @@ export default function Navbar() {
                 }}
                 className="block w-full rounded-full bg-gradient-to-r from-cyan-500 to-emerald-500 py-3 text-center text-sm font-bold text-ink-950"
               >
-                Get Started Free
+                Start Free Trial
               </button>
             </div>
           )}

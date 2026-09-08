@@ -94,29 +94,16 @@ async function loadRazorpayScript(): Promise<void> {
 }
 
 export async function createOrder(params: CreateOrderParams): Promise<RazorpayOrder> {
-  const amountInPaise = params.amount < 1000 ? Math.round(params.amount * 100) : Math.round(params.amount);
+  const amountInPaise = params.amount < 1000 ? params.amount * 100 : params.amount;
   const amountInRupees = amountInPaise / 100;
 
   try {
     const { data: { session } } = await supabase.auth.getSession();
-    const demoRaw = typeof window !== "undefined" ? localStorage.getItem("lernex_demo_user") : null;
-    const isDemo = !session?.user && Boolean(demoRaw);
-
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (session?.access_token) {
-      headers["Authorization"] = `Bearer ${session.access_token}`;
-    } else if (isDemo) {
-      headers["Authorization"] = "Bearer demo-token";
-      headers["x-demo-user"] = "true";
-    }
-
     const res = await fetch("/api/razorpay/create-order", {
       method: "POST",
-      headers,
+      headers: { "Content-Type": "application/json", ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}) },
       body: JSON.stringify({
         amount: amountInRupees,
-        amount_paise: amountInPaise,
-        purpose: params.purpose,
         currency: "INR",
         receipt: `rcpt_${params.purpose}_${Date.now()}`,
         notes: { purpose: params.purpose }
@@ -125,10 +112,9 @@ export async function createOrder(params: CreateOrderParams): Promise<RazorpayOr
 
     if (res.ok) {
       const data = await res.json();
-      const orderId = data.order_id || data.id;
-      if (orderId) {
+      if (data.order_id) {
         return {
-          id: orderId,
+          id: data.order_id,
           amount: data.amount || amountInPaise,
           currency: data.currency || "INR",
           key_id: data.key_id,
@@ -140,13 +126,17 @@ export async function createOrder(params: CreateOrderParams): Promise<RazorpayOr
     console.warn("[Razorpay API Error]:", err);
   }
 
-  // Resilient fallback order so checkout never crashes
-  return {
-    id: `order_sim_${Date.now()}`,
-    amount: amountInPaise,
-    currency: "INR",
-    is_mock: true,
-  };
+  // If server API was unavailable, check if Supabase Edge functions configured
+  if (isSupabaseConfigured) {
+    try {
+      const { data } = await supabase.functions.invoke<RazorpayOrder>("create-razorpay-order", {
+        body: params,
+      });
+      if (data?.id) return data;
+    } catch {}
+  }
+
+  throw new Error("Payment service is unavailable. Please try again shortly.");
 }
 
 export async function verifyPayment(params: RazorpayPaymentResponse & {
@@ -161,8 +151,6 @@ export async function verifyPayment(params: RazorpayPaymentResponse & {
 }): Promise<VerifyPaymentResult> {
   try {
     const { data: { session } } = await supabase.auth.getSession();
-    const effectiveUserId = params.user_id || session?.user?.id;
-
     const res = await fetch("/api/razorpay/verify-payment", {
       method: "POST",
       headers: { "Content-Type": "application/json", ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}) },
@@ -171,7 +159,7 @@ export async function verifyPayment(params: RazorpayPaymentResponse & {
         razorpay_payment_id: params.razorpay_payment_id,
         razorpay_signature: params.razorpay_signature,
         item_type: params.item_type || "general",
-        user_id: effectiveUserId,
+        user_id: params.user_id,
         metadata: {
           course_id: params.course_id,
           course_title: params.course_title,
@@ -189,38 +177,17 @@ export async function verifyPayment(params: RazorpayPaymentResponse & {
     console.warn("[Razorpay Verify API Fallback]:", err);
   }
 
-  // Client-side fallback to record transaction directly in Supabase
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    const userId = params.user_id || session?.user?.id;
-    const isUuid = (str: any) => typeof str === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
-
-    if (userId && isUuid(userId)) {
-      await supabase.from("transactions").upsert({
-        user_id: userId,
-        razorpay_order_id: params.razorpay_order_id || `order_${Date.now()}`,
-        razorpay_payment_id: params.razorpay_payment_id || `pay_${Date.now()}`,
-        status: "success",
-        item_type: params.item_type || "general",
-        amount: params.metadata?.amount || 0,
-        currency: "INR",
-        metadata: {
-          course_id: params.course_id,
-          course_title: params.course_title,
-          full_name: params.full_name,
-          ...(params.metadata || {})
-        },
-        created_at: new Date().toISOString()
+  if (isSupabaseConfigured) {
+    try {
+      const { data } = await supabase.functions.invoke<VerifyPaymentResult>("verify-razorpay-payment", {
+        body: params,
       });
-    }
-    return { success: true, message: "Payment recorded successfully" };
-  } catch (fallbackErr) {
-    console.warn("[Client Transaction Save Fallback Error]:", fallbackErr);
+      if (data) return data;
+    } catch {}
   }
 
   return { success: false, error: "Payment verification service is unavailable. Please try again shortly." };
 }
-
 
 export function openRazorpayCheckout(options: {
   orderId: string;

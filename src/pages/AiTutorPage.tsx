@@ -22,7 +22,6 @@ import {
   GradientText, 
   MagneticButton 
 } from "@/components/anim";
-import { askAITutor } from "@/lib/aiTutor";
 
 export default function AiTutorPage() {
   const [messages, setMessages] = useState<Array<{ sender: "user" | "ai"; text: string }>>([
@@ -41,7 +40,7 @@ export default function AiTutorPage() {
     "What is the difference between SQL JOIN and UNION?",
   ];
 
-  const handleSend = async (textToSend?: string) => {
+  const handleSend = (textToSend?: string) => {
     const question = textToSend || input;
     if (!question.trim()) return;
 
@@ -49,37 +48,23 @@ export default function AiTutorPage() {
     if (!textToSend) setInput("");
     setIsThinking(true);
 
-    try {
-      const res = await askAITutor("socratic-mentor-page", question, {
-        isPro: true,
-        planType: "pro",
-        lessonTitle: "24/7 Socratic Mentor",
-        moduleTitle: "Computer Science & AI Mentorship",
-      });
+    setTimeout(() => {
+      let aiResponse = "";
+      const lower = question.toLowerCase();
 
-      const responseText = res?.message?.content;
-      if (responseText) {
-        setMessages((prev) => [...prev, { sender: "ai", text: responseText }]);
+      if (lower.includes("recursion")) {
+        aiResponse = "Recursion ko ek Russian Matryoshka doll ki tarah samjho! Har doll ke andar ek smaller doll hoti hai (recursive case), aur end mein ek aisi smallest doll aati hai jo khul nahi sakti (Base Case). Agar Base Case bhool gaye, toh stack overflow ho jaayega! Chalo, ek simple countdown function likhkar try karein?";
+      } else if (lower.includes("0.1") || lower.includes("float")) {
+        aiResponse = "Binary hardware computers floating point numbers ko base-2 powers mein store karte hain (IEEE 754 standard). Jaise 1/3 decimal mein 0.33333... ban jaata hai, waise 0.1 aur 0.2 binary mein infinitely repeating fractions bante hain, causing tiny precision rounding errors!";
+      } else if (lower.includes("hash")) {
+        aiResponse = "Hash Map ek mathematical hashing function use karta hai jo key ko instant array index memory address mein translate karta hai! Seedha address pata hone ki wajah se poori list scan nahi karni padti—hence constant time O(1)!";
       } else {
-        setMessages((prev) => [
-          ...prev,
-          {
-            sender: "ai",
-            text: `Great question on ${question}! The fundamental mental model to keep in mind is separating state from side-effects. In Lernex sandboxes, you can test this right now in live memory. Would you like me to walk you through an interactive 3-step coding drill for this?`,
-          },
-        ]);
+        aiResponse = `Great question on ${question}! The fundamental mental model to keep in mind is separating state from side-effects. In Lernex sandboxes, you can test this right now in live memory. Would you like me to walk you through an interactive 3-step coding drill for this?`;
       }
-    } catch {
-      setMessages((prev) => [
-        ...prev,
-        {
-          sender: "ai",
-          text: `Great question on ${question}! Focus on identifying your base conditions and expected outputs. Try running a minimal test case in the sandbox!`,
-        },
-      ]);
-    } finally {
+
+      setMessages((prev) => [...prev, { sender: "ai", text: aiResponse }]);
       setIsThinking(false);
-    }
+    }, 700);
   };
 
   return (

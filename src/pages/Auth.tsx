@@ -113,7 +113,7 @@ export default function Auth() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSignUp && !termsAccepted) {
-      setError("Please accept the Terms of Service and Privacy Policy to create your account.");
+      setError("Please accept the Terms of Service and Privacy Policy to proceed with your trial.");
       return;
     }
 
@@ -124,7 +124,7 @@ export default function Auth() {
       if (isSignUp) {
         const result = await signup(email, password, firstName, lastName, phone);
         if (!result.sessionCreated) {
-          setError("Account created! Check your email to verify, then sign in to access your dashboard.");
+          setError("Account created! Check your email to verify, then sign in to begin your trial.");
           setIsSignUp(false);
           setIsLoading(false);
           return;
@@ -330,7 +330,7 @@ export default function Auth() {
                 )}
                 <span className="relative z-10 flex items-center justify-center gap-1.5">
                   <Sparkles className="h-3.5 w-3.5 text-cyan-700" />
-                  Create Free Account
+                  Start Free Trial
                 </span>
               </button>
             </div>
@@ -340,7 +340,7 @@ export default function Auth() {
               <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
                 {isSignUp ? (
                   <span>
-                    Create Your <GradientText>Free Account</GradientText>
+                    Start Your <GradientText>14-Day Free Trial</GradientText>
                   </span>
                 ) : (
                   <span>
@@ -447,7 +447,7 @@ export default function Auth() {
               </div>
               <div className="relative flex justify-center text-center">
                 <span className="bg-white px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                  {isSignUp ? "or sign up with email" : "or continue with email"}
+                  {isSignUp ? "or start trial with email" : "or continue with email"}
                 </span>
               </div>
             </div>
@@ -597,10 +597,10 @@ export default function Auth() {
                       <Link href="/privacy" className="text-cyan-700 font-bold hover:underline">
                         Privacy Policy
                       </Link>
-                      . 100% Free Forever Access.
+                      . Includes 14-day free trial.
                       {!termsAccepted && (
                         <span className="block text-red-600 font-bold mt-0.5">
-                          Please accept to create your account.
+                          Please accept to activate your trial.
                         </span>
                       )}
                     </span>
@@ -625,7 +625,7 @@ export default function Auth() {
                   </>
                 ) : (
                   <>
-                    <span>{isSignUp ? "Create Free Account" : "Log In to Dashboard"}</span>
+                    <span>{isSignUp ? "Activate 14-Day Free Trial" : "Log In to Dashboard"}</span>
                     <ArrowRight className="h-4 w-4 stroke-[2.5]" />
                   </>
                 )}
@@ -655,7 +655,7 @@ export default function Auth() {
                   <>
                     New to LernexAI?{" "}
                     <strong className="text-cyan-700 font-bold underline underline-offset-4">
-                      Create Free Account
+                      Start 14-Day Free Trial
                     </strong>
                   </>
                 )}

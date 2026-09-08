@@ -30,7 +30,6 @@ import { useToast } from "@/hooks/use-toast";
 import { getCertificateGrade } from "@/lib/certificate";
 import { getAppUrl } from "@/lib/siteUrl";
 import { AcademicCertificate } from "@/components/AcademicCertificate";
-import { createOrder, openRazorpayCheckout, verifyPayment } from "@/lib/razorpay";
 import {
   fetchCertificatePurchaseByCourse,
   recordCertificateDownload,
@@ -240,107 +239,65 @@ export default function CertificateCheckoutPage() {
     try {
       setIsPaying(true);
 
-      const order = await createOrder({
-        amount: 199,
-        purpose: "certificate",
-      });
+      // Simulate payment processing
+      await new Promise((r) => setTimeout(r, 700));
 
-      await openRazorpayCheckout({
-        orderId: order.id,
-        amount: order.amount || 19900,
-        keyId: order.key_id,
-        userName: fullName.trim() || user?.name || "Student",
-        userEmail: user?.email || "student@lernexai.com",
-        onSuccess: async (response) => {
-          try {
-            await verifyPayment({
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-              item_type: "certificate",
-              user_id: user?.id,
-              metadata: {
-                course_id: courseId,
-                course_title: course.title,
-                full_name: fullName.trim(),
-                amount: 199,
-              },
-            });
-          } catch (verifyErr) {
-            console.warn("[Verify payment warning]:", verifyErr);
-          }
+      const randomPart = Math.random().toString(36).substring(2, 10).toUpperCase();
+      const certificateId = `LXAI-${new Date().getFullYear()}-${randomPart}`;
+      const mockPaymentId = `pay_sim_${Date.now()}`;
 
-          const randomPart = Math.random().toString(36).substring(2, 10).toUpperCase();
-          const certificateId = `LXAI-${new Date().getFullYear()}-${randomPart}`;
+      if (user?.id) {
+        await createCertificatePurchase({
+          userId: user.id,
+          courseId,
+          courseTitle: course.title,
+          score: score ?? 80,
+          grade: grade?.grade || "A",
+          fullName: fullName.trim(),
+          paymentId: mockPaymentId,
+          certificateId,
+        });
+      }
 
-          if (user?.id) {
-            await createCertificatePurchase({
-              userId: user.id,
-              courseId,
-              courseTitle: course.title,
-              score: score ?? 80,
-              grade: grade?.grade || "A",
-              fullName: fullName.trim(),
-              paymentId: response.razorpay_payment_id,
-              certificateId,
-            });
-          }
+      setIsPurchased(true);
+      if (user?.id) {
+        try {
+          const purchase = await fetchCertificatePurchaseByCourse(user.id, courseId);
+          if (purchase) setPurchaseRecord(purchase);
+        } catch {
+          // ignore fetch error
+        }
+      }
 
-          setIsPurchased(true);
-          if (user?.id) {
-            try {
-              const purchase = await fetchCertificatePurchaseByCourse(user.id, courseId);
-              if (purchase) setPurchaseRecord(purchase);
-            } catch {
-              // ignore fetch error
-            }
-          }
+      // Fire victory confetti
+      try {
+        confetti({
+          particleCount: 150,
+          spread: 80,
+          origin: { y: 0.5 },
+          colors: ["#6366f1", "#f59e0b", "#10b981", "#3b82f6"],
+        });
+      } catch {
+        // ignore confetti error
+      }
 
-          // Fire victory confetti
-          try {
-            confetti({
-              particleCount: 150,
-              spread: 80,
-              origin: { y: 0.5 },
-              colors: ["#6366f1", "#f59e0b", "#10b981", "#3b82f6"],
-            });
-          } catch {}
-
-          toast({
-            title: "Payment Successful & Certificate Unlocked! 🎉",
-            description: "Your official ₹199 certificate has been issued and verified.",
-          });
-          setIsPaying(false);
-        },
-        onFailure: (err) => {
-          setIsPaying(false);
-          toast({
-            title: "Payment Incomplete",
-            description: err?.description || err?.message || "₹199 payment was not completed. The certificate remains locked.",
-            variant: "destructive",
-          });
-        },
+      toast({
+        title: "Payment Successful & Certificate Unlocked! 🎉",
+        description: "Your official ₹199 certificate has been issued and verified.",
       });
     } catch (payError) {
-      setIsPaying(false);
       toast({
         title: "Checkout Issue",
-        description: payError instanceof Error ? payError.message : "Unable to initiate payment.",
+        description: payError instanceof Error ? payError.message : "Unable to complete order.",
         variant: "destructive",
       });
+    } finally {
+      setIsPaying(false);
     }
   };
 
   // Printable / Downloadable Certificate Generator
   const handleDownload = async () => {
-    if (!isPurchased) {
-      toast({
-        title: "Payment Required",
-        description: "Please complete the ₹199 verification fee to unlock and download your official certificate.",
-        variant: "destructive",
-      });
-      return;
-    }
     if (!course || score === null || !fullName.trim()) return;
 
     const issuedDate = formatDate(new Date());

@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/context/AuthContext";
 
 export default function AuthCallback() {
   const [, setLocation] = useLocation();
-  const { refreshUser } = useAuth();
   const [message, setMessage] = useState("Completing sign in…");
   const [hasError, setHasError] = useState(false);
 
@@ -53,27 +51,7 @@ export default function AuthCallback() {
           }
         }
 
-        // 2. If access_token is in hash (Implicit OAuth grant), set session directly
-        const accessToken = hashParams.get("access_token") || url.searchParams.get("access_token");
-        const refreshToken = hashParams.get("refresh_token") || url.searchParams.get("refresh_token");
-        if (!session && accessToken) {
-          setMessage("Authenticating with Google…");
-          try {
-            const { data: setSessionData, error: setSessionErr } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken || "",
-            });
-            if (setSessionData?.session) {
-              session = setSessionData.session;
-            } else if (setSessionErr) {
-              console.warn("setSession error:", setSessionErr.message);
-            }
-          } catch (tokErr) {
-            console.warn("setSession catch:", tokErr);
-          }
-        }
-
-        // 3. If session wasn't obtained via exchange or tokens, check Supabase's active session
+        // 2. If session wasn't obtained via exchange, check Supabase's active session
         if (!session) {
           setMessage("Retrieving active session…");
           const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
@@ -84,7 +62,7 @@ export default function AuthCallback() {
           }
         }
 
-        // 4. Brief retry in case tokens are still being persisted by Supabase client
+        // 3. Brief retry in case tokens are still being persisted by Supabase client
         if (!session) {
           await new Promise((res) => setTimeout(res, 800));
           const { data: retryData } = await supabase.auth.getSession();
@@ -94,19 +72,9 @@ export default function AuthCallback() {
         if (!active) return;
 
         if (session?.user) {
-          localStorage.removeItem("lernex_demo_user");
           setMessage("Profile verified. Redirecting to dashboard…");
 
-          // Clean token hash from browser url
-          try {
-            if (window.history && window.history.replaceState) {
-              window.history.replaceState(null, "", window.location.pathname);
-            }
-          } catch (_e) {
-            // Ignored if browser prevents history replacement
-          }
-
-          // Ensure profile is recorded in public.users without overwriting pro status
+          // Ensure profile is recorded in public.users
           try {
             const userMeta = session.user.user_metadata || {};
             const fullName = userMeta.full_name || userMeta.name || "";
@@ -118,12 +86,6 @@ export default function AuthCallback() {
               userMeta.picture ||
               `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(session.user.email || 'user')}&backgroundColor=e2e8f0`;
 
-            const { data: existingUser } = await supabase
-              .from('users')
-              .select('plan_type')
-              .eq('id', session.user.id)
-              .maybeSingle();
-
             await supabase
               .from('users')
               .upsert({
@@ -132,17 +94,11 @@ export default function AuthCallback() {
                 first_name: firstName,
                 last_name: lastName,
                 avatar_url: avatarUrl,
-                plan_type: existingUser?.plan_type || session.user.app_metadata?.plan_type || 'free',
+                plan_type: 'free',
                 role: 'student',
               }, { onConflict: 'id' });
           } catch (profileError) {
             console.warn("User profile upsert warning during callback:", profileError);
-          }
-
-          try {
-            await refreshUser();
-          } catch (refErr) {
-            console.warn("refreshUser catch in callback:", refErr);
           }
 
           setLocation("/dashboard", { replace: true });
@@ -170,7 +126,7 @@ export default function AuthCallback() {
     return () => {
       active = false;
     };
-  }, [setLocation, refreshUser]);
+  }, [setLocation]);
 
   return (
     <div className="flex min-h-dvh items-center justify-center bg-slate-50 px-6 text-center">
