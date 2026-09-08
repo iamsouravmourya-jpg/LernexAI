@@ -57,9 +57,13 @@ function normalizeMessage(message: StoredAIChatMessage): AIChatMessage {
 export async function fetchAIChatHistory(lessonId: string, isPro = false) {
   const fallbackLimit = isPro ? 50 : 10;
   try {
+    const { data: { session } } = await supabase.auth.getSession();
     const res = await fetch("/api/ai-tutor", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+      },
       body: JSON.stringify({ action: "history", lessonId, planType: isPro ? "pro" : "free", isPro }),
     });
 
@@ -117,11 +121,13 @@ export async function askAITutor(
 
   for (const endpoint of endpoints) {
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          "Accept": "application/json"
+          "Accept": "application/json",
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
         },
         body: JSON.stringify({
           action: "ask",

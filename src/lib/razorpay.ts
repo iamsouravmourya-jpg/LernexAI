@@ -136,12 +136,7 @@ export async function createOrder(params: CreateOrderParams): Promise<RazorpayOr
     } catch {}
   }
 
-  const mockId = `order_mock_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-  return {
-    id: mockId,
-    amount: amountInPaise,
-    currency: "INR"
-  };
+  throw new Error("Payment service is unavailable. Please try again shortly.");
 }
 
 export async function verifyPayment(params: RazorpayPaymentResponse & {
@@ -191,7 +186,7 @@ export async function verifyPayment(params: RazorpayPaymentResponse & {
     } catch {}
   }
 
-  return { success: true, message: "Payment verified successfully!" };
+  return { success: false, error: "Payment verification service is unavailable. Please try again shortly." };
 }
 
 export function openRazorpayCheckout(options: {
