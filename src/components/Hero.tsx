@@ -37,7 +37,7 @@ export default function Hero() {
             />
 
             <p className="mt-6 max-w-lg text-lg leading-relaxed text-slate-600 dark:text-slate-300">
-              No boring 20-hour video dumps. Learn by doing with in-depth interactive curriculums, live browser terminals, instant AI doubt solving, and verified QR certificates.
+              Learn by doing with structured interactive lessons, browser sandboxes, AI doubt solving, assessments, and QR-verifiable certificates.
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-4">
@@ -145,7 +145,7 @@ export default function Hero() {
         {/* Trust marquee */}
         <div className="mt-20 border-t border-slate-200 dark:border-white/5 pt-8">
           <p className="mb-4 text-center text-xs font-semibold uppercase tracking-widest text-slate-500">
-            Trusted & Accredited
+            Built for practical learning
           </p>
           <Marquee items={trustBadges} />
         </div>

@@ -11,7 +11,7 @@ export default function LearningPath() {
             A structured <TextFill text="path to mastery" className="font-extrabold" />
           </h2>
           <p className="mt-4 text-lg text-slate-600 dark:text-slate-400">
-            Every track follows a proven 14-week roadmap. No guesswork, no wasted time.
+            Move from foundations to practice, assessment, and certificate verification in a clear course flow.
           </p>
         </Reveal>
 

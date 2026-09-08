@@ -8,10 +8,10 @@ export default function TechStack() {
         <Reveal className="mx-auto mb-16 max-w-2xl text-center">
           <p className="mb-3 text-sm font-bold uppercase tracking-widest text-cyan-600 dark:text-cyan-400">Industry-Standard Tools</p>
           <h2 className="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-5xl">
-            Learn the <GradientText>real stack</GradientText>
+            Explore the <GradientText>learning stack</GradientText>
           </h2>
           <p className="mt-4 text-lg text-slate-600 dark:text-slate-400">
-            We teach the exact tools, frameworks, and workflows used at top tech companies.
+            These are the technologies used across the LernexAI app and its interactive learning workflows.
           </p>
         </Reveal>
 
@@ -29,7 +29,7 @@ export default function TechStack() {
         {/* Technologies marquee */}
         <div className="mt-16 border-t border-slate-200 dark:border-white/5 pt-10">
           <p className="mb-6 text-center text-xs font-semibold uppercase tracking-widest text-slate-500">
-            Tech Stacks & Languages Covered
+            Technologies used in this app
           </p>
           <Marquee items={['React.js', 'Node.js', 'Python', 'TypeScript', 'PostgreSQL', 'Tailwind CSS', 'Docker', 'Git & GitHub', 'Next.js', 'REST APIs', 'Data Structures', 'SQL']} speed="slow" />
         </div>

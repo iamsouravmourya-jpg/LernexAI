@@ -27,17 +27,17 @@ export default function Certificate() {
                 {/* Certificate body */}
                 <div className="text-center">
                   <p className="font-serif-certificate text-sm text-slate-600 dark:text-slate-400">This certifies that</p>
-                  <p className="font-serif-certificate my-2 text-2xl font-bold text-slate-900 dark:text-white">Arjun Mehta</p>
+                  <p className="font-serif-certificate my-2 text-2xl font-bold text-slate-900 dark:text-white">Learner Name</p>
                   <p className="text-sm text-slate-600 dark:text-slate-400">has successfully completed</p>
-                  <p className="font-serif-certificate my-2 text-xl font-bold text-amber-700 dark:text-amber-400">Full-Stack MERN Development</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-500">with distinction · 14 weeks · score 94%</p>
+                  <p className="font-serif-certificate my-2 text-xl font-bold text-amber-700 dark:text-amber-400">Course Completion</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-500">assessment result · certificate ID · public verification</p>
                 </div>
 
                 {/* Certificate footer */}
                 <div className="mt-6 flex items-end justify-between border-t border-amber-500/20 dark:border-amber-500/10 pt-4">
                   <div>
-                    <p className="font-serif-certificate text-sm italic text-slate-700 dark:text-slate-400">Aman Khanna</p>
-                    <p className="text-xs text-slate-500">Lead Instructor</p>
+                    <p className="font-serif-certificate text-sm italic text-slate-700 dark:text-slate-400">LernexAI</p>
+                    <p className="text-xs text-slate-500">Learning platform</p>
                   </div>
                   <div className="flex flex-col items-center">
                     <div className="flex h-20 w-20 items-center justify-center rounded-lg border border-amber-500/30 dark:border-amber-500/20 bg-amber-500/10 dark:bg-amber-500/5">
@@ -47,7 +47,7 @@ export default function Certificate() {
                   </div>
                   <div className="text-right">
                     <p className="font-serif-certificate text-sm italic text-slate-700 dark:text-slate-400">LernexAI</p>
-                    <p className="text-xs text-slate-500">Issued 2024</p>
+                    <p className="text-xs text-slate-500">Preview</p>
                   </div>
                 </div>
               </div>
@@ -62,8 +62,8 @@ export default function Certificate() {
                 Proof of <GradientText>real skill completion</GradientText>
               </h2>
               <p className="mt-4 text-lg text-slate-600 dark:text-slate-400">
-                Every certificate is cryptographically signed, QR-verifiable, and linked to a public
-                page. When you walk into an interview, your skills are provable.
+                Eligible certificates include a unique ID, QR code, and public verification page
+                with course and assessment details.
               </p>
             </Reveal>
 

@@ -7,12 +7,12 @@ export default function Testimonials() {
     <section id="testimonials" className="relative bg-white dark:bg-ink-950 py-24">
       <div className="mx-auto max-w-7xl px-6">
         <Reveal className="mx-auto mb-16 max-w-2xl text-center">
-          <p className="mb-3 text-sm font-bold uppercase tracking-widest text-cyan-600 dark:text-cyan-400">Success Stories</p>
+            <p className="mb-3 text-sm font-bold uppercase tracking-widest text-cyan-600 dark:text-cyan-400">Platform Highlights</p>
           <h2 className="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-5xl">
-            Real people. <TextFill text="Real results." className="font-extrabold" />
+            See what you can <TextFill text="do here." className="font-extrabold" />
           </h2>
           <p className="mt-4 text-lg text-slate-600 dark:text-slate-400">
-            From college dropouts to tech leads. From career switchers to first-time coders.
+            A clear view of the learning tools and workflows currently available in LernexAI.
           </p>
         </Reveal>
 
@@ -23,9 +23,9 @@ export default function Testimonials() {
                 <Quote className="mb-4 h-8 w-8 text-cyan-600/30 dark:text-cyan-500/30" />
 
                 <div className="mb-4 flex gap-1">
-                  {[...Array(t.rating)].map((_, j) => (
+                  {t.rating > 0 ? [...Array(t.rating)].map((_, j) => (
                     <Star key={j} className="h-4 w-4 fill-amber-400 text-amber-400" />
-                  ))}
+                  )) : <span className="text-xs font-semibold text-cyan-600 dark:text-cyan-400">Available in the platform</span>}
                 </div>
 
                 <p className="mb-6 text-sm leading-relaxed text-slate-700 dark:text-slate-300">"{t.text}"</p>
@@ -46,7 +46,7 @@ export default function Testimonials() {
 
         <Reveal className="mt-12 text-center">
           <p className="text-sm text-slate-600 dark:text-slate-400">
-            Join <GradientText className="font-bold">practical learners</GradientText> building real skills with AI.
+            Explore the <GradientText className="font-bold">available workflows</GradientText> and start with a course.
           </p>
         </Reveal>
       </div>
