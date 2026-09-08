@@ -19,20 +19,84 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const id = ticketId || `TKT-${Math.floor(1000 + Math.random() * 9000)}`;
+  const subjectText = String(subject).trim();
+  const messageText = String(message).trim();
+  const groqKeys = [
+    process.env.GROQ_API_KEY,
+    process.env.GROQ_API_KEY_1,
+    process.env.GROQ_API_KEY_2,
+    process.env.GROQ_API_KEY_3,
+    process.env.GROQ_API_KEY_4,
+  ].map((key) => (key || "").trim()).filter((key) => key.startsWith("gsk_"));
+
+  let isSpam = false;
+  let isGenuine = true;
+  let urgency = String(priority);
+  let aiResponse = "Thank you for contacting Lernex AI Support. Our team will review your request and get back to you shortly.";
+  let recommendedAction = "Review user query.";
+
+  if (groqKeys.length > 0) {
+    try {
+      const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${groqKeys[0]}`,
+        },
+        body: JSON.stringify({
+          model: process.env.GROQ_MODEL || "openai/gpt-oss-20b",
+          temperature: 0.2,
+          response_format: { type: "json_object" },
+          messages: [
+            {
+              role: "system",
+              content: "You triage LernexAI support tickets. Return only JSON with isSpam boolean, isGenuine boolean, urgency (low, normal, high, critical), autoReply string, and recommendedAction string. Mark greetings, gibberish, promotional spam, and messages without a real request as spam. Keep real course, account, payment, certificate, bug, and feedback requests genuine.",
+            },
+            {
+              role: "user",
+              content: `Category: ${category || "General"}\nPriority: ${priority}\nSubject: ${subjectText}\nMessage: ${messageText}`,
+            },
+          ],
+        }),
+      });
+      const groqData = await groqResponse.json();
+      const rawContent = groqData.choices?.[0]?.message?.content;
+      const parsed = typeof rawContent === "string" ? JSON.parse(rawContent) : null;
+      if (parsed && typeof parsed.isSpam === "boolean") isSpam = parsed.isSpam;
+      if (parsed && typeof parsed.isGenuine === "boolean") isGenuine = parsed.isGenuine;
+      if (parsed?.urgency) urgency = String(parsed.urgency);
+      if (parsed?.autoReply) aiResponse = String(parsed.autoReply);
+      if (parsed?.recommendedAction) recommendedAction = String(parsed.recommendedAction);
+    } catch (error) {
+      console.warn("[Support] Groq triage failed, using local filter:", error);
+    }
+  }
+
+  if (!groqKeys.length || (!isSpam && isGenuine && aiResponse.startsWith("Thank you for contacting"))) {
+    const compactText = `${subjectText} ${messageText}`.toLowerCase().trim();
+    if (compactText.length < 5 || /^(hi|hello|hey|test|testing|asdf|kya hai)$/i.test(compactText)) {
+      isSpam = true;
+      isGenuine = false;
+      aiResponse = "Hello! Please share specific details about your issue so our support team can help you.";
+      recommendedAction = "Ask the learner for specific issue details.";
+    }
+  }
+
+  const ticketStatus = isSpam ? "Auto-Resolved" : "Under Review";
   const telegramToken = process.env.TELEGRAM_BOT_TOKEN || "";
   const telegramChatId = process.env.TELEGRAM_CHAT_ID || "";
   let telegramSent = false;
   let telegramMessageId: number | undefined;
 
-  if (telegramToken && telegramChatId) {
+  if (isGenuine && telegramToken && telegramChatId) {
     const telegramText = [
       "🚨 NEW SUPPORT TICKET 🚨",
       `Ticket ID: ${id}`,
       `User: ${userName || "Learner"}${userEmail ? ` (${userEmail})` : ""}`,
       `Category: ${category || "General"}`,
       `Priority: ${String(priority).toUpperCase()}`,
-      `Subject: ${subject}`,
-      `Message: ${message}`,
+      `Subject: ${subjectText}`,
+      `Message: ${messageText}`,
       url ? `URL: ${url}` : "",
       "Reply to this message to respond to the learner.",
     ].filter(Boolean).join("\n\n");
@@ -56,10 +120,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     ticket: {
       id,
       category: category || "General",
-      subject: String(subject).trim(),
-      message: String(message).trim(),
+      subject: subjectText,
+      message: messageText,
       priority,
-      status: "Under Review",
+      status: ticketStatus,
       createdAt: "Just now",
       createdAtIso: new Date().toISOString(),
       userEmail,
@@ -67,11 +131,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       userId,
       screenshot,
       url,
-      isSpam: false,
-      isGenuine: true,
-      urgency: priority,
-      aiResponse: "Thank you for contacting Lernex AI Support. Our team will review your request and get back to you shortly.",
-      recommendedAction: "Review user query.",
+      isSpam,
+      isGenuine,
+      urgency,
+      aiResponse,
+      recommendedAction,
       telegramSent,
       telegramMessageId,
     },
