@@ -34,6 +34,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   let urgency = String(priority);
   let aiResponse = "Thank you for contacting Lernex AI Support. Our team will review your request and get back to you shortly.";
   let recommendedAction = "Review user query.";
+  const looksLikeGibberish = (value: string) => {
+    const normalized = value.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+    const words = normalized.split(" ").filter(Boolean);
+    if (!normalized || normalized.length < 5) return true;
+    if (words.length === 1 && words[0].length <= 4) return true;
+    if (words.length === 1 && !/[aeiou]/.test(words[0]) && words[0].length <= 8) return true;
+    return /^(hi|hello|hey|test|testing|asdf|qwerty|hhdg|kya hai)$/i.test(normalized);
+  };
 
   if (groqKeys.length > 0) {
     try {
@@ -72,14 +80,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  if (!groqKeys.length || (!isSpam && isGenuine && aiResponse.startsWith("Thank you for contacting"))) {
-    const compactText = `${subjectText} ${messageText}`.toLowerCase().trim();
-    if (compactText.length < 5 || /^(hi|hello|hey|test|testing|asdf|kya hai)$/i.test(compactText)) {
-      isSpam = true;
-      isGenuine = false;
-      aiResponse = "Hello! Please share specific details about your issue so our support team can help you.";
-      recommendedAction = "Ask the learner for specific issue details.";
-    }
+  if (looksLikeGibberish(`${subjectText} ${messageText}`)) {
+    isSpam = true;
+    isGenuine = false;
+    aiResponse = "Hello! Please share specific details about your issue so our support team can help you.";
+    recommendedAction = "Ask the learner for specific issue details.";
   }
 
   const ticketStatus = isSpam ? "Auto-Resolved" : "Under Review";
@@ -124,7 +129,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       message: messageText,
       priority,
       status: ticketStatus,
-      createdAt: "Just now",
+      createdAt: new Date().toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }),
       createdAtIso: new Date().toISOString(),
       userEmail,
       userName,

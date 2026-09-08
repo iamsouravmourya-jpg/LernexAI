@@ -837,7 +837,7 @@ export default function Support() {
                             {isResolved && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
                             {tkt.status}
                           </span>
-                          <span className="text-slate-400 text-[11px]">{tkt.createdAt}</span>
+                          <span className="text-slate-400 text-[11px]">{tkt.createdAtIso ? new Date(tkt.createdAtIso).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : tkt.createdAt}</span>
                         </div>
                       </div>
 
