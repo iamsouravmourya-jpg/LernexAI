@@ -31,7 +31,7 @@ export default function CTA() {
             </MagneticButton>
             <MagneticButton
               primary={false}
-              onClick={() => setLocation('/contact')}
+              onClick={() => setLocation(user ? '/contact' : '/auth?next=/support')}
             >
               Talk to Sales
             </MagneticButton>

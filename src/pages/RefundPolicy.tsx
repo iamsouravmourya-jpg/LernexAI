@@ -62,7 +62,7 @@ export default function RefundPolicy() {
                 <div>
                   <h3 className="font-bold text-slate-900 mb-1">7-Day No-Questions-Asked Refund Window</h3>
                   <p className="text-xs text-emerald-800">
-                    Submit a refund ticket on <Link href="/support" className="underline font-bold text-emerald-900">Support</Link> or email hello@lernex.ai within 7 days of purchase. Your UPI / card transaction will be reversed within 3-5 business days.
+                    Submit a refund ticket through <Link href="/support" className="underline font-bold text-emerald-900">Help Center</Link> within 7 days of purchase. Your UPI / card transaction will be reversed within 3-5 business days.
                   </p>
                 </div>
               </div>

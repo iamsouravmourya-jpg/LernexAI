@@ -61,6 +61,9 @@ export default function Auth() {
   const [demoLoading, setDemoLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState("");
+  const nextPath = typeof window !== "undefined"
+    ? new URLSearchParams(window.location.search).get("next")
+    : null;
 
 
   const handleDemoLogin = async () => {
@@ -68,7 +71,7 @@ export default function Auth() {
       setError("");
       setDemoLoading(true);
       await loginAsDemo();
-      setLocation("/dashboard", { replace: true });
+      setLocation(nextPath || "/dashboard", { replace: true });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Demo login failed";
       setError(message);

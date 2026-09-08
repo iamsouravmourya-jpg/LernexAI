@@ -28,6 +28,7 @@ import {
 import DashboardLayout from "@/components/DashboardLayout";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthContext";
+import { useLocation } from "wouter";
 import { supabase, isSupabaseConfigured, isValidUuid } from "@/lib/supabase";
 
 interface Ticket {
@@ -57,6 +58,7 @@ type IssueType = "bug" | "feature" | "course" | "course_request" | "billing" | "
 export default function Support() {
   const { toast } = useToast();
   const { user } = useAuth();
+  const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState<"submit" | "faq" | "tickets">("submit");
   const [issueType, setIssueType] = useState<IssueType>("course_request");
   const [subject, setSubject] = useState("");
@@ -197,12 +199,16 @@ export default function Support() {
   }, [user?.email, user?.id, userTickets]);
 
   useEffect(() => {
+    if (!user) {
+      setLocation('/auth?next=/support', { replace: true });
+      return;
+    }
     syncTicketsWithServer();
     const interval = setInterval(() => {
       syncTicketsWithServer();
     }, 4500);
     return () => clearInterval(interval);
-  }, [syncTicketsWithServer]);
+  }, [syncTicketsWithServer, user, setLocation]);
 
   const categories = [
     { 
@@ -278,7 +284,7 @@ export default function Support() {
       id: 6,
       category: "Billing",
       question: "What is your refund policy?",
-      answer: "We offer an unconditional 7-day money-back guarantee on all Pro memberships. If you are not completely satisfied, submit a refund ticket or email hello@lernex.ai for an immediate reversal.",
+      answer: "We offer an unconditional 7-day money-back guarantee on all Pro memberships. If you are not completely satisfied, submit a refund ticket through this Help Center.",
     },
     {
       id: 7,
@@ -411,7 +417,7 @@ export default function Support() {
   };
 
   const copySupportEmail = () => {
-    navigator.clipboard.writeText("hello@lernex.ai");
+    navigator.clipboard.writeText(window.location.origin + "/support");
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -441,7 +447,7 @@ export default function Support() {
               className="px-4 py-2.5 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold flex items-center gap-2 transition cursor-pointer shrink-0"
             >
               {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4 text-slate-400" />}
-              <span>{copied ? "Copied Email!" : "hello@lernex.ai"}</span>
+              <span>{copied ? "Link Copied!" : "Open Help Center"}</span>
             </button>
           </div>
         </div>

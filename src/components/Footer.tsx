@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { footerLinks } from '../data';
+import { useAuth } from '@/context/AuthContext';
 import { GraduationCap, Twitter, Linkedin, Youtube, Instagram, Mail, MapPin, Smartphone, Apple, CheckCircle2, Loader2 } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { Reveal, MagneticButton } from './anim';
 
 export default function Footer() {
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
@@ -69,7 +71,7 @@ export default function Footer() {
 
       // Resources
       case 'Help Center':
-        return '/support';
+        return user ? '/support' : '/auth?next=/support';
       case 'Community Forum':
         return '/community';
       case 'API Docs':
@@ -191,9 +193,9 @@ export default function Footer() {
             <div className="mt-6 space-y-2">
               <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
                 <Mail className="h-4 w-4 text-cyan-600 dark:text-cyan-400/60" />
-                <a href="mailto:iamsouravmaurya@gmail.com" className="hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors">
-                  iamsouravmaurya@gmail.com
-                </a>
+                <button onClick={() => setLocation(user ? '/support' : '/auth?next=/support')} className="text-left hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors">
+                  Contact support through Help Center
+                </button>
               </div>
               <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
                 <MapPin className="h-4 w-4 text-cyan-600 dark:text-cyan-400/60" />
@@ -206,7 +208,7 @@ export default function Footer() {
               {[Twitter, Linkedin, Youtube, Instagram].map((Icon, i) => (
                 <a
                   key={i}
-                  href="#"
+                  href="/about-founder"
                   className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-600 dark:text-slate-400 shadow-sm dark:shadow-none transition-colors hover:border-cyan-500/30 hover:text-cyan-600 dark:hover:text-cyan-400"
                 >
                   <Icon className="h-4 w-4" />

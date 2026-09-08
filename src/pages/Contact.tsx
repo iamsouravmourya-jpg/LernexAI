@@ -6,8 +6,6 @@ import {
   MessageSquare,
   Clock, 
   CheckCircle, 
-  Copy, 
-  Check, 
   MapPin, 
   ArrowLeft,
   LifeBuoy,
@@ -26,7 +24,6 @@ import {
 } from "@/components/anim";
 
 export default function Contact() {
-  const [copied, setCopied] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -36,12 +33,6 @@ export default function Contact() {
   });
   const [submitted, setSubmitted] = useState(false);
   const [sending, setSending] = useState(false);
-
-  const copyEmail = () => {
-    navigator.clipboard.writeText("iamsouravmaurya@gmail.com");
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,14 +112,13 @@ export default function Contact() {
                   </p>
                 </div>
                 <div className="shrink-0 flex flex-col gap-3">
-                  <button
-                    onClick={copyEmail}
+                  <Link
+                    href="/support"
                     className="inline-flex items-center gap-2 rounded-full border border-cyan-500/40 bg-cyan-50 px-5 py-3 text-xs font-bold text-cyan-700 transition-all hover:bg-cyan-100 shadow-sm"
                   >
-                    {copied ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
-                    {copied ? "Email Copied!" : "Copy Direct Email"}
-                  </button>
-                  <span className="text-center text-[11px] text-slate-500">hello@lernex.ai</span>
+                    <LifeBuoy className="h-4 w-4" />
+                    Open Help Center
+                  </Link>
                 </div>
               </div>
             </div>
@@ -259,8 +249,8 @@ export default function Contact() {
                     <Mail className="h-5 w-5 text-cyan-600 shrink-0 mt-0.5" />
                     <div>
                       <span className="text-xs text-slate-500">Founder & Student Support</span>
-                      <p className="text-sm font-semibold text-slate-900">iamsouravmaurya@gmail.com</p>
-                      <p className="text-xs text-slate-500">hello@lernex.ai</p>
+                      <p className="text-sm font-semibold text-slate-900">Use the Help Center ticket flow</p>
+                      <p className="text-xs text-slate-500">Authenticated support requests are tracked there.</p>
                     </div>
                   </div>
 
