@@ -20,6 +20,43 @@ import {
 } from "lucide-react";
 import { MeshGradientBackground, PageEffects, GradientText } from "@/components/anim";
 
+function validateSignupForm(values: {
+  firstName: string;
+  lastName: string;
+  phone: string;
+  email: string;
+  password: string;
+}): string | null {
+  const namePattern = /^[A-Za-z]+(?:[ '-][A-Za-z]+)*$/;
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  const normalizedFirstName = values.firstName.trim();
+  const normalizedLastName = values.lastName.trim();
+  const normalizedEmail = values.email.trim().toLowerCase();
+  const normalizedPhone = values.phone.replace(/\D/g, "");
+  const placeholderNames = new Set(["hi hlo", "test user", "asdf asdf", "abc xyz"]);
+
+  if (!namePattern.test(normalizedFirstName) || normalizedFirstName.length < 2 || normalizedFirstName.length > 40) {
+    return "Please enter a valid first name using letters only.";
+  }
+  if (normalizedLastName && (!namePattern.test(normalizedLastName) || normalizedLastName.length > 40)) {
+    return "Please enter a valid last name using letters only.";
+  }
+  if (placeholderNames.has(`${normalizedFirstName} ${normalizedLastName}`.toLowerCase())) {
+    return "Please enter your real name to create an account.";
+  }
+  if (!/^\d{10}$/.test(normalizedPhone)) {
+    return "Please enter a valid 10-digit phone number.";
+  }
+  if (!emailPattern.test(normalizedEmail)) {
+    return "Please enter a valid email address, such as name@example.com.";
+  }
+  if (values.password.length < 8 || !/[A-Z]/.test(values.password) || !/[a-z]/.test(values.password) || !/\d/.test(values.password)) {
+    return "Password must be at least 8 characters and include uppercase, lowercase, and a number.";
+  }
+
+  return null;
+}
+
 export default function Auth() {
   const { login, signup, loginWithGoogle, logout, user } = useAuth();
   const [, setLocation] = useLocation();
@@ -96,6 +133,13 @@ export default function Auth() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSignUp) {
+      const validationError = validateSignupForm({ firstName, lastName, phone, email, password });
+      if (validationError) {
+        setError(validationError);
+        return;
+      }
+    }
     if (isSignUp && !termsAccepted) {
       setError("Please accept the Terms of Service and Privacy Policy to create your account.");
       return;

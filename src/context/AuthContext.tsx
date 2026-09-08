@@ -274,6 +274,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           full_name: fullName,
           first_name: firstName?.trim() || null,
           last_name: lastName?.trim() || null,
+          phone: phone?.trim() || null,
           avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(trimmedEmail)}&backgroundColor=e2e8f0`,
           plan_type: "free"
         }
@@ -284,8 +285,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (data.user) {
       localStorage.removeItem("lernex_demo_user");
-      try {
-        await supabase
+      if (data.session?.user) {
+        const { error: profileError } = await supabase
           .from('users')
           .upsert({
             id: data.user.id,
@@ -297,8 +298,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             plan_type: 'free',
             role: 'student',
           }, { onConflict: 'id' });
-      } catch (profileError) {
-        console.error("Error creating user profile:", profileError);
+
+        if (profileError) {
+          throw new Error(`Account created, but profile could not be saved: ${profileError.message}`);
+        }
       }
 
       if (data.session?.user) {
