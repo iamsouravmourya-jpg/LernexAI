@@ -610,33 +610,114 @@ app.post(
 // Razorpay Payment Verification Endpoint
 const handleVerifyRazorpayPayment = async (req: express.Request, res: express.Response) => {
   try {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body || {};
+    const {
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+      item_type,
+      user_id,
+      metadata
+    } = req.body || {};
+
     const { key_secret, is_mock } = getRazorpayInstance();
 
-    if (!is_mock && key_secret && razorpay_order_id && razorpay_payment_id && razorpay_signature) {
+    let isSignatureValid = false;
+
+    if (!is_mock && key_secret && razorpay_order_id && razorpay_payment_id && razorpay_signature && !razorpay_order_id.startsWith("order_mock_") && !razorpay_order_id.startsWith("order_sim_")) {
       const generated_signature = crypto
         .createHmac("sha256", key_secret)
         .update(`${razorpay_order_id}|${razorpay_payment_id}`)
         .digest("hex");
 
-      if (generated_signature !== razorpay_signature) {
+      isSignatureValid = generated_signature === razorpay_signature;
+      if (!isSignatureValid) {
         console.warn("[Razorpay Signature Mismatch]:", { generated_signature, razorpay_signature });
+      }
+    } else {
+      // Allow test / simulation mode verification
+      isSignatureValid = true;
+    }
+
+    if (!isSignatureValid) {
+      return res.status(400).json({ error: "Invalid payment signature verification failed." });
+    }
+
+    // Record Transaction & Update User Status in Supabase
+    const db = getSupabaseAdmin();
+    if (db) {
+      try {
+        const isUuidStr = (str: any) => typeof str === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+        const validUserId = isUuidStr(user_id) ? user_id : null;
+
+        // 1. Record in transactions table
+        await db.from("transactions").upsert({
+          user_id: validUserId,
+          razorpay_order_id: razorpay_order_id || `order_${Date.now()}`,
+          razorpay_payment_id: razorpay_payment_id || `pay_${Date.now()}`,
+          status: "success",
+          item_type: item_type || "general",
+          amount: metadata?.amount || 0,
+          currency: "INR",
+          metadata: metadata || {},
+          created_at: new Date().toISOString()
+        });
+
+        // 2. Grant Pro Plan
+        if ((item_type === "pro_upgrade" || item_type === "pro_subscription") && validUserId) {
+          const proExpires = new Date();
+          proExpires.setDate(proExpires.getDate() + 33); // 30 days + 3 bonus days
+          await db.from("users").update({
+            plan_type: "pro",
+            pro_valid_until: proExpires.toISOString(),
+            daily_chat_limit: 50,
+            updated_at: new Date().toISOString()
+          }).eq("id", validUserId);
+        } 
+        // 3. Grant AI Credits
+        else if (item_type === "credits" && validUserId) {
+          const addedCredits = Number(metadata?.credits || 50);
+          const { data: userRec } = await db.from("users").select("extra_credits").eq("id", validUserId).single();
+          const currentBal = Number(userRec?.extra_credits || 0);
+          await db.from("users").update({
+            extra_credits: currentBal + addedCredits,
+            updated_at: new Date().toISOString()
+          }).eq("id", validUserId);
+        } 
+        // 4. Issue Certificate
+        else if (item_type === "certificate" && validUserId && metadata?.course_id) {
+          const certId = metadata?.certificate_id || `LXAI-${new Date().getFullYear()}-${String(metadata.course_id).slice(0, 4).toUpperCase()}-95`;
+          await db.from("certificate_purchases").upsert({
+            id: `cert-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+            user_id: validUserId,
+            course_id: metadata.course_id,
+            course_title: metadata.course_title || "Verified Course",
+            certificate_id: certId,
+            score: metadata.score || 95,
+            grade: metadata.grade || "A+",
+            full_name: metadata.full_name || "Student",
+            purchase_amount: metadata.amount ? metadata.amount * 100 : 9900,
+            payment_id: razorpay_payment_id || `pay_${Date.now()}`,
+            issued_at: new Date().toISOString(),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+        }
+      } catch (dbErr) {
+        console.warn("[Razorpay DB Sync Error]:", dbErr);
       }
     }
 
     return res.json({
       success: true,
-      message: "Payment verified successfully",
+      message: "Payment successfully verified and activated!",
       orderId: razorpay_order_id,
       paymentId: razorpay_payment_id || `pay_${Date.now()}`,
     });
   } catch (err: any) {
     console.error("[Verify Payment Error]:", err);
-    return res.json({
-      success: true,
-      message: "Payment verified with local confirmation",
-      orderId: req.body?.razorpay_order_id,
-      paymentId: req.body?.razorpay_payment_id || `pay_${Date.now()}`,
+    return res.status(500).json({
+      error: "Payment verification failed",
+      details: err?.message
     });
   }
 };
@@ -960,9 +1041,15 @@ app.get(["/api/razorpay/config", "/razorpay/config"], (_req, res) => {
 // 1. Create Razorpay Order
 app.post(["/api/razorpay/create-order", "/razorpay/create-order"], async (req, res) => {
   try {
-    const { amount, currency = "INR", receipt, notes } = req.body;
-    if (!amount || typeof amount !== "number") {
+    const { amount, currency = "INR", receipt, notes } = req.body || {};
+    let numAmount = Number(amount || req.body?.amount_paise);
+    if (!numAmount || isNaN(numAmount) || numAmount <= 0) {
       return res.status(400).json({ error: "Invalid amount. Must be a positive number." });
+    }
+    if (numAmount < 1000) {
+      numAmount = Math.round(numAmount * 100);
+    } else {
+      numAmount = Math.round(numAmount);
     }
 
     const keyId = (process.env.RAZORPAY_KEY_ID || process.env.VITE_RAZORPAY_KEY_ID || "").trim();
@@ -976,7 +1063,7 @@ app.post(["/api/razorpay/create-order", "/razorpay/create-order"], async (req, r
       });
 
       const options = {
-        amount: Math.round(amount * 100), // Amount in paise
+        amount: numAmount, // Amount in paise
         currency,
         receipt: receipt || `rcpt_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
         notes: notes || {},
@@ -997,7 +1084,7 @@ app.post(["/api/razorpay/create-order", "/razorpay/create-order"], async (req, r
     return res.json({
       success: true,
       order_id: mockOrderId,
-      amount: Math.round(amount * 100),
+      amount: numAmount,
       currency: currency || "INR",
       key_id: keyId || "rzp_test_demo12345678",
       is_mock: true,
@@ -1005,111 +1092,16 @@ app.post(["/api/razorpay/create-order", "/razorpay/create-order"], async (req, r
   } catch (err: any) {
     console.warn("Razorpay Order Creation Error (Falling back to test sandbox order):", err?.message);
     const mockOrderId = `order_mock_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-    const amount = req.body?.amount || 100;
+    const rawAmt = Number(req.body?.amount || 100);
+    const numAmount = rawAmt < 1000 ? Math.round(rawAmt * 100) : Math.round(rawAmt);
     return res.json({
       success: true,
       order_id: mockOrderId,
-      amount: Math.round(amount * 100),
+      amount: numAmount,
       currency: "INR",
       key_id: "rzp_test_demo12345678",
       is_mock: true,
     });
-  }
-});
-
-// 2. Verify Razorpay Payment Signature & Update DB
-app.post(["/api/razorpay/verify-payment", "/razorpay/verify-payment"], async (req, res) => {
-  try {
-    const {
-      razorpay_order_id,
-      razorpay_payment_id,
-      razorpay_signature,
-      item_type, // 'pro_upgrade', 'credits', 'certificate'
-      user_id,
-      metadata
-    } = req.body;
-
-    const keySecret = (process.env.RAZORPAY_KEY_SECRET || "").trim();
-
-    let isSignatureValid = false;
-
-    if (keySecret && !keySecret.includes("dummy") && razorpay_signature && razorpay_order_id && !razorpay_order_id.startsWith("order_mock_")) {
-      const body = razorpay_order_id + "|" + razorpay_payment_id;
-      const expectedSignature = crypto
-        .createHmac("sha256", keySecret)
-        .update(body.toString())
-        .digest("hex");
-      isSignatureValid = expectedSignature === razorpay_signature;
-    } else {
-      // Mock / Test fallback mode
-      isSignatureValid = true;
-    }
-
-    if (!isSignatureValid) {
-      return res.status(400).json({ error: "Invalid payment signature verification failed." });
-    }
-
-    // Record Transaction & Update User Status in Supabase
-    const db = getSupabaseAdmin();
-    if (db) {
-      try {
-        // Record in transactions table
-        await db.from("transactions").upsert({
-          user_id: user_id || "demo-user",
-          razorpay_order_id: razorpay_order_id || `order_${Date.now()}`,
-          razorpay_payment_id: razorpay_payment_id || `pay_${Date.now()}`,
-          status: "success",
-          item_type: item_type || "general",
-          amount: metadata?.amount || 0,
-          metadata: metadata || {},
-          created_at: new Date().toISOString()
-        });
-
-        // Grant Pro Plan
-        if (item_type === "pro_upgrade" && user_id) {
-          const proExpires = new Date();
-          proExpires.setDate(proExpires.getDate() + 33); // 30 days + 3 bonus days
-          await db.from("profiles").upsert({
-            id: user_id,
-            plan: "pro",
-            pro_expires_at: proExpires.toISOString(),
-            updated_at: new Date().toISOString()
-          });
-        } 
-        // Grant AI Credits
-        else if (item_type === "credits" && user_id) {
-          const addedCredits = Number(metadata?.credits || 50);
-          const { data: profile } = await db.from("profiles").select("ai_credits_balance").eq("id", user_id).single();
-          const currentBal = profile?.ai_credits_balance || 0;
-          await db.from("profiles").upsert({
-            id: user_id,
-            ai_credits_balance: currentBal + addedCredits,
-            updated_at: new Date().toISOString()
-          });
-        } 
-        // Issue Certificate
-        else if (item_type === "certificate" && user_id && metadata?.course_id) {
-          await db.from("certificates").upsert({
-            user_id,
-            course_id: metadata.course_id,
-            status: "issued",
-            payment_id: razorpay_payment_id || `pay_${Date.now()}`,
-            issued_at: new Date().toISOString()
-          });
-        }
-      } catch (dbErr) {
-        console.warn("[Razorpay DB Sync Error]:", dbErr);
-      }
-    }
-
-    return res.json({
-      success: true,
-      message: "Payment successfully verified and activated!",
-      payment_id: razorpay_payment_id || `pay_mock_${Date.now()}`
-    });
-  } catch (err: any) {
-    console.error("Payment Verification Error:", err);
-    return res.status(500).json({ error: "Failed to verify payment", details: err?.message });
   }
 });
 
@@ -1124,25 +1116,26 @@ app.get(["/api/admin/supabase-status", "/admin/supabase-status"], async (_req, r
       });
     }
 
-    const { data: profiles, error: pErr } = await db.from("profiles").select("count", { count: "exact", head: true });
+    const { data: usersData, error: uErr } = await db.from("users").select("count", { count: "exact", head: true });
     const { data: txs, error: tErr } = await db.from("transactions").select("count", { count: "exact", head: true });
-    const { data: certs, error: cErr } = await db.from("certificates").select("count", { count: "exact", head: true });
+    const { data: certs, error: cErr } = await db.from("certificate_purchases").select("count", { count: "exact", head: true });
 
     return res.json({
       configured: true,
       tables: {
-        profiles: !pErr,
+        users: !uErr,
         transactions: !tErr,
-        certificates: !cErr,
+        certificate_purchases: !cErr,
       },
       schemaFileCreated: true,
-      schemaFilePath: "/supabase_master_schema.sql",
+      schemaFilePath: "/supabase/master_schema.sql",
       errors: {
-        profiles: pErr?.message || null,
+        users: uErr?.message || null,
         transactions: tErr?.message || null,
-        certificates: cErr?.message || null,
+        certificate_purchases: cErr?.message || null,
       }
     });
+
   } catch (err: any) {
     return res.status(500).json({ error: "Failed to check Supabase status", details: err?.message });
   }

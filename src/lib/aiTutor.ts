@@ -122,6 +122,7 @@ export async function askAITutor(
   for (const endpoint of endpoints) {
     try {
       let authToken = "";
+      let isDemo = false;
       if (isSupabaseConfigured) {
         try {
           const { data: { session } } = await supabase.auth.getSession();
@@ -132,17 +133,27 @@ export async function askAITutor(
       }
 
       if (!authToken) {
-        authToken = "Bearer demo-token";
+        const demoUser = typeof window !== "undefined" ? localStorage.getItem("lernex_demo_user") : null;
+        if (demoUser) {
+          authToken = "Bearer demo-token";
+          isDemo = true;
+        }
+      }
+
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+      };
+      if (authToken) {
+        headers["Authorization"] = authToken;
+      }
+      if (isDemo) {
+        headers["x-demo-user"] = "true";
       }
 
       const res = await fetch(endpoint, {
         method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-          "Authorization": authToken,
-          "x-demo-user": "true",
-        },
+        headers,
         body: JSON.stringify({
           action: "ask",
           lessonId,

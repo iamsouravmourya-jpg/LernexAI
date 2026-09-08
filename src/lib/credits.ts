@@ -1,3 +1,5 @@
+import { supabase, isSupabaseConfigured, isValidUuid } from "@/lib/supabase";
+
 export interface CreditPackage {
   id: string;
   credits: number;
@@ -156,7 +158,7 @@ export function getDailyChatStatus(userId?: string | null, isPro = false): ChatU
   const isDemo =
     userId === "00000000-0000-0000-0000-000000000001" ||
     userId === "demo-user-12345" ||
-    (typeof window !== "undefined" && Boolean(localStorage.getItem("lernex_demo_user")));
+    (!userId && typeof window !== "undefined" && Boolean(localStorage.getItem("lernex_demo_user")));
 
   const effectivePro = isPro || isDemo;
   const dailyLimit = isDemo ? 100 : effectivePro ? 50 : 10;
@@ -268,6 +270,29 @@ export function addPurchasedCredits(userId: string | null | undefined, creditAmo
 
   batches.push(newBatch);
   saveCreditBatches(userKey, batches);
+
+  // Sync to Supabase users.extra_credits if authenticated
+  if (isSupabaseConfigured && userId && isValidUuid(userId)) {
+    (async () => {
+      try {
+        const { data: userRow } = await supabase
+          .from("users")
+          .select("extra_credits")
+          .eq("id", userId)
+          .maybeSingle();
+        const currentBal = Number(userRow?.extra_credits || 0);
+        await supabase
+          .from("users")
+          .update({
+            extra_credits: currentBal + creditAmount,
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", userId);
+      } catch (err) {
+        console.warn("[Sync purchased credits to Supabase warning]:", err);
+      }
+    })();
+  }
 
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent(CREDITS_EVENT, { detail: { userKey, added: creditAmount } }));
