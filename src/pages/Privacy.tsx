@@ -110,7 +110,7 @@ export default function Privacy() {
                 <div>
                   <h2 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2">Our Core Privacy Commitment</h2>
                   <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
-                    At LernexAI, your trust is paramount. Whether you run code inside our live sandbox, ask questions to our AI Tutor in Hindi or English, or earn blockchain-verifiable credentials, we treat your data with military-grade privacy controls.
+                    At LernexAI, your trust is paramount. Whether you run code inside our live sandbox, ask questions to our AI Tutor, or use certificate verification, we limit data use to the learning and support features you access.
                   </p>
                 </div>
               </div>
@@ -135,7 +135,7 @@ export default function Privacy() {
                   { title: "Account & Profile", desc: "Your full name, email address, and authentication tokens via Google or Supabase Auth." },
                   { title: "Course Progress & Sandboxes", desc: "Code edits, lesson completion timestamps, quiz results, and verified project milestone snapshots." },
                   { title: "AI Tutor Interactions", desc: "Questions asked to the AI assistant to tailor real-time hints and improve explanation accuracy." },
-                  { title: "Certificate Registry", desc: "Cryptographically salted public verification hashes to prove certificate authenticity globally." },
+                  { title: "Certificate Registry", desc: "Certificate IDs, course details, assessment results, and issue dates used by the public verification page." },
                 ].map((item, i) => (
                   <div key={i} className="rounded-xl border border-slate-100 bg-slate-50 p-4 hover:border-slate-200 transition-all">
                     <div className="flex items-start gap-3">

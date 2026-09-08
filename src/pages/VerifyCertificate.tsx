@@ -117,7 +117,7 @@ export default function VerifyCertificate() {
               </Link>
               <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-50 px-3.5 py-1 text-xs font-semibold text-cyan-700">
                 <ShieldCheck className="h-3.5 w-3.5 text-cyan-600" />
-                <span>Cryptographic Ledger Verification</span>
+                <span>Public Certificate Verification</span>
               </div>
             </div>
           </Reveal>
@@ -140,7 +140,7 @@ export default function VerifyCertificate() {
                     Verify <GradientText text="Credentials" />
                   </h1>
                   <p className="max-w-2xl text-base sm:text-lg text-slate-600 leading-relaxed">
-                    Instantly authenticate any LernexAI graduate certificate. Verify exam scores, issuing timestamps, and student identity with tamper-proof cryptographic proofs.
+                    Check a LernexAI certificate ID and view the course, score, grade, and issue details stored for public verification.
                   </p>
                 </div>
               </div>
@@ -156,7 +156,7 @@ export default function VerifyCertificate() {
                 <label htmlFor="certificate-id" className="block text-sm font-bold text-slate-900">
                   Enter Certificate ID or Scan QR Hash
                 </label>
-                <span className="text-xs font-medium text-slate-500">Example: LXAI-2026-EXCEL-98</span>
+                <span className="text-xs font-medium text-slate-500">Enter the certificate ID from the certificate</span>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3">
@@ -168,7 +168,7 @@ export default function VerifyCertificate() {
                     id="certificate-id"
                     value={certificateId}
                     onChange={(e) => setCertificateId(e.target.value)}
-                    placeholder="e.g. LXAI-2026-PYTHON-95"
+                    placeholder="Enter your certificate ID"
                     className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-4 pl-12 pr-4 text-sm font-medium text-slate-900 placeholder-slate-400 outline-none transition-colors focus:border-cyan-500 focus:bg-white"
                     autoComplete="off"
                   />
@@ -183,24 +183,6 @@ export default function VerifyCertificate() {
                 </button>
               </div>
 
-              {/* Quick sample pills */}
-              <div className="mt-5 pt-5 border-t border-slate-100 flex flex-wrap items-center gap-2">
-                <span className="text-xs font-semibold text-slate-500 mr-1">Try Sample IDs:</span>
-                <button
-                  type="button"
-                  onClick={() => handleQuickTest("LXAI-2026-EXCEL-98")}
-                  className="text-xs font-medium bg-cyan-50 text-cyan-700 hover:bg-cyan-100 px-3.5 py-1.5 rounded-xl border border-cyan-200 transition-colors"
-                >
-                  LXAI-2026-EXCEL-98
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickTest("LXAI-2026-PYTHON-95")}
-                  className="text-xs font-medium bg-emerald-50 text-emerald-700 hover:bg-emerald-100 px-3.5 py-1.5 rounded-xl border border-emerald-200 transition-colors"
-                >
-                  LXAI-2026-PYTHON-95
-                </button>
-              </div>
             </form>
           </Reveal>
 
@@ -231,7 +213,7 @@ export default function VerifyCertificate() {
                     <div>
                       <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-50 text-emerald-800 text-xs font-bold mb-1 border border-emerald-200">
                         <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-                        <span>Cryptographically Verified & Authentic</span>
+                        <span>Certificate Record Found</span>
                       </div>
                       <h2 className="text-2xl sm:text-3xl font-black text-slate-900">{result.full_name}</h2>
                     </div>
@@ -277,7 +259,7 @@ export default function VerifyCertificate() {
                   </div>
 
                   <div className="rounded-2xl border border-slate-100 bg-slate-50 p-5">
-                    <dt className="text-xs text-slate-500 font-medium mb-1">Unique Ledger ID</dt>
+                    <dt className="text-xs text-slate-500 font-medium mb-1">Certificate ID</dt>
                     <dd className="font-mono text-xs font-bold text-cyan-800 bg-cyan-50 px-2.5 py-1 rounded-md border border-cyan-200 inline-block">
                       {result.certificate_id}
                     </dd>
@@ -287,7 +269,7 @@ export default function VerifyCertificate() {
                 <div className="mt-8 pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
                   <div className="flex items-center gap-2">
                     <Sparkles className="h-4 w-4 text-cyan-600" />
-                    <span>Issued officially by LernexAI Examination Council</span>
+                    <span>Issued by LernexAI</span>
                   </div>
                   <Link href="/browse">
                     <span className="font-bold text-cyan-700 hover:text-cyan-800 transition-colors cursor-pointer flex items-center gap-1">

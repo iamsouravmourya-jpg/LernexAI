@@ -16,12 +16,12 @@ import {
 
 export default function StatusPage() {
   const systems = [
-    { name: "Live Sandbox Compiler Fleet (WebAssembly)", status: "Operational", uptime: "99.98%" },
-    { name: "Socratic AI Tutor Engine (Gemini Pro)", status: "Operational", uptime: "99.95%" },
-    { name: "Public Certificate Registry & QR Hash", status: "Operational", uptime: "100.0%" },
-    { name: "User Auth & Profile Synchronization", status: "Operational", uptime: "99.99%" },
-    { name: "Video CDN & Interactive Assets", status: "Operational", uptime: "99.94%" },
-    { name: "Payment Gateway & Automated Invoicing", status: "Operational", uptime: "100.0%" },
+    { name: "Course lessons and browser sandboxes", status: "Available" },
+    { name: "AI Tutor requests", status: "Available" },
+    { name: "Public certificate verification", status: "Available" },
+    { name: "User authentication and profiles", status: "Available" },
+    { name: "Support ticket flow", status: "Available" },
+    { name: "Razorpay checkout", status: "Configured" },
   ];
 
   return (
@@ -45,7 +45,7 @@ export default function StatusPage() {
               </Link>
               <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-50 px-3.5 py-1 text-xs font-semibold text-emerald-700">
                 <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span>All Systems Fully Operational</span>
+                <span>Current Service Overview</span>
               </div>
             </div>
           </Reveal>
@@ -62,13 +62,13 @@ export default function StatusPage() {
                 </div>
                 <div className="flex-1 text-center md:text-left">
                   <span className="inline-block rounded-full border border-emerald-500/30 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 mb-3">
-                    Real-Time Infrastructure Telemetry
+                    Service Overview
                   </span>
                   <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-slate-900 mb-3">
                     LernexAI <GradientText text="System Status" />
                   </h1>
                   <p className="max-w-2xl text-base sm:text-lg text-slate-600 leading-relaxed">
-                    Live uptime, cluster response latencies, and service health across our globally distributed sandbox nodes.
+                    A current overview of the platform features and service paths available in this deployment.
                   </p>
                 </div>
               </div>
@@ -87,7 +87,7 @@ export default function StatusPage() {
                   </div>
                   <div>
                     <h3 className="text-base font-bold text-slate-900">{sys.name}</h3>
-                    <span className="text-xs text-slate-500">90-Day Uptime: {sys.uptime}</span>
+                    <span className="text-xs text-slate-500">Deployment status: {sys.status}</span>
                   </div>
                 </div>
 

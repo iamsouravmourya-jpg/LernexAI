@@ -32,12 +32,13 @@ export default function ApiDocs() {
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const curlVerify = `curl -X GET "https://api.lernex.ai/v1/certificates/verify?id=LXAI-2026-EXCEL-98" \\
+  const curlVerify = `# Public verification is available in the browser at /verify?id=YOUR_CERTIFICATE_ID
+curl -L "https://www.lernexai.site/verify?id=YOUR_CERTIFICATE_ID" \\
   -H "Authorization: Bearer lxai_live_8932408923049"`;
 
   const jsonResponse = `{
   "valid": true,
-  "certificate_id": "LXAI-2026-EXCEL-98",
+  "certificate_id": "YOUR_CERTIFICATE_ID",
   "recipient_name": "Sourav Maurya",
   "course": "Master Advanced Python & AI",
   "score": 96.5,
@@ -110,7 +111,7 @@ export default function ApiDocs() {
                 <span className="font-mono text-sm sm:text-base font-bold text-slate-900">/v1/certificates/verify</span>
               </div>
               <p className="text-sm text-slate-600">
-                Verifies if a specific credential ID is authentic and returns the cryptographically signed ledger payload.
+                Describes the certificate verification data used by the public verification page. This page is documentation only; no public API key is issued here.
               </p>
 
               {/* cURL Request Box */}

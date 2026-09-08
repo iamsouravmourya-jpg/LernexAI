@@ -53,10 +53,10 @@ export default function Terms() {
       id: "certificates",
       icon: BadgeCheck,
       title: "3. Certificate Issuance & Examination Rules",
-      desc: "Official blockchain-verifiable credentials require scoring 80% or higher on timed, anti-cheating comprehensive final assessments.",
+      desc: "Eligible certificates require completion of the course assessment flow and are checked through the public verification page.",
       points: [
         "Strict anti-plagiarism heuristics monitor automated copy-pasting during final assessments.",
-        "Verified digital certificates feature unique public hashes verifiable by recruiters worldwide.",
+        "Certificates include a unique ID and public verification details.",
         "Certificates found to be obtained through fraudulent means will be immediately revoked."
       ]
     },

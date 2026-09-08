@@ -266,7 +266,7 @@ export default function Support() {
       id: 3,
       category: "Certificates",
       question: "How do I earn an official verified certificate for my course?",
-      answer: "Complete all interactive coding modules and score 40% or higher on the timed final assessment. Once cleared, your certificate is instantly generated with a unique QR code and tamper-proof hash verifiable on /verify.",
+      answer: "Complete the interactive modules and final assessment flow. Eligible certificates include a unique ID and QR code that can be checked on /verify.",
     },
     {
       id: 4,
