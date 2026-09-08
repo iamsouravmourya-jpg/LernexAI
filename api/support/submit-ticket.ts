@@ -1,10 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-
-function setCors(res: VercelResponse) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-}
+import { requireUser, setCors } from "../_lib/auth.js";
 
 function escapeTelegramHtml(value: unknown) {
   return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -14,9 +9,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   setCors(res);
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+  const authenticatedUser = await requireUser(req);
+  if (!authenticatedUser) return res.status(401).json({ error: "Authentication required" });
 
   const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body || {};
-  const { ticketId, category, subject, message, priority = "normal", userEmail, userName, userId, screenshot, url } = body;
+  const { ticketId, category, subject, message, priority = "normal", screenshot, url } = body;
+  const userEmail = authenticatedUser.email;
+  const userName = authenticatedUser.user_metadata?.full_name || authenticatedUser.email?.split("@")[0] || "Learner";
+  const userId = authenticatedUser.id;
 
   if (!String(subject || "").trim() || !String(message || "").trim()) {
     return res.status(400).json({ error: "Subject and message are required" });
@@ -133,6 +133,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     } catch (error) {
       console.warn("[Support] Telegram notification failed:", error);
     }
+  }
+
+  const supabaseUrl = (process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || "").trim();
+  const serviceRoleKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
+  if (supabaseUrl && serviceRoleKey) {
+    const saveResponse = await fetch(`${supabaseUrl}/rest/v1/support_tickets`, {
+      method: "POST",
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+        "Content-Type": "application/json",
+        Prefer: "return=minimal",
+      },
+      body: JSON.stringify({ id, user_id: userId, user_email: userEmail, user_name: userName, category, subject: subjectText, message: messageText, priority, status: ticketStatus, is_spam: isSpam, is_genuine: isGenuine, urgency, ai_response: aiResponse, recommended_action: recommendedAction, telegram_sent: telegramSent, telegram_message_id: telegramMessageId, screenshot, url }),
+    });
+    if (!saveResponse.ok) console.error("[Support] Ticket persistence failed:", saveResponse.status);
   }
 
   return res.status(200).json({

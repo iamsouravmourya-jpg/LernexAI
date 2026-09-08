@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { supabase } from "@/lib/supabase";
 import { 
   PageEffects, 
   ScrollProgress, 
@@ -47,9 +48,11 @@ export default function Contact() {
     if (!formData.name || !formData.email || !formData.message) return;
     setSending(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Please sign in before contacting the sales/support team.");
       const response = await fetch('/api/support/submit-ticket', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({
           category: formData.category,
           subject: formData.subject || `${formData.category} inquiry`,

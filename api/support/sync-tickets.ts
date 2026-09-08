@@ -3,47 +3,27 @@ import { requireUser, setCors } from "../_lib/auth.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   setCors(res);
-
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+
   const authenticatedUser = await requireUser(req);
   if (!authenticatedUser) return res.status(401).json({ error: "Authentication required" });
 
   const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body || {};
-  const ticketIds = Array.isArray(body.ticketIds) ? body.ticketIds.map((id: unknown) => String(id).toUpperCase()) : [];
-  const telegramToken = process.env.TELEGRAM_BOT_TOKEN || "";
-  if (!telegramToken || ticketIds.length === 0) return res.status(200).json({ success: true, tickets: [] });
+  const ticketIds = Array.isArray(body.ticketIds)
+    ? body.ticketIds.map((id: unknown) => String(id).toUpperCase()).filter((id: string) => /^TKT-\d+$/.test(id))
+    : [];
+  if (ticketIds.length === 0) return res.status(200).json({ success: true, tickets: [] });
 
-  try {
-    const telegramResponse = await fetch(`https://api.telegram.org/bot${telegramToken}/getUpdates?offset=0&limit=100`);
-    const telegramData = await telegramResponse.json();
-    const tickets = new Map<string, Record<string, unknown>>();
+  const supabaseUrl = (process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || "").trim();
+  const serviceRoleKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
+  if (!supabaseUrl || !serviceRoleKey) return res.status(200).json({ success: true, tickets: [] });
 
-    for (const update of telegramData.result || []) {
-      const message = update.message;
-      const text = String(message?.text || "").trim();
-      if (!text) continue;
+  const query = ticketIds.map((id) => `"${id}"`).join(",");
+  const response = await fetch(`${supabaseUrl}/rest/v1/support_tickets?select=*&user_id=eq.${authenticatedUser.id}&id=in.(${query})`, {
+    headers: { apikey: serviceRoleKey, Authorization: `Bearer ${serviceRoleKey}` },
+  });
+  if (!response.ok) return res.status(502).json({ error: "Unable to sync support tickets" });
 
-      let ticketId: string | undefined;
-      const replyText = String(message?.reply_to_message?.text || "");
-      const replyMatch = replyText.match(/Ticket ID:\s*`?(TKT-\d+)`?/i);
-      const directMatch = text.match(/\b(TKT-\d+)\s*:\s*(.+)/is);
-      if (replyMatch) ticketId = replyMatch[1].toUpperCase();
-      else if (directMatch) ticketId = directMatch[1].toUpperCase();
-      if (!ticketId || !ticketIds.includes(ticketId)) continue;
-
-      const reply = directMatch ? directMatch[2].trim() : text;
-      tickets.set(ticketId, {
-        id: ticketId,
-        adminReply: reply,
-        adminReplyTime: new Date((message.date || Math.floor(Date.now() / 1000)) * 1000).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }),
-        status: "Resolved",
-      });
-    }
-
-    return res.status(200).json({ success: true, tickets: Array.from(tickets.values()) });
-  } catch (error) {
-    console.warn("[Support] Telegram sync failed:", error);
-    return res.status(200).json({ success: true, tickets: [] });
-  }
+  return res.status(200).json({ success: true, tickets: await response.json() });
 }

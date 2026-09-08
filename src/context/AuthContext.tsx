@@ -182,22 +182,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
 
-        // Priority 2: Check for stored demo session ONLY if no real session exists
-        const storedDemo = localStorage.getItem("lernex_demo_user");
-        if (storedDemo) {
-          try {
-            const parsed = JSON.parse(storedDemo);
-            if (isMounted) {
-              setUser(parsed);
-              clearTimeout(timeoutId);
-              setLoading(false);
-              return;
-            }
-          } catch {
-            localStorage.removeItem("lernex_demo_user");
-          }
-        }
-
         if (isMounted) {
           setUser(null);
         }
@@ -247,22 +231,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const loginAsDemo = async () => {
-    localStorage.setItem("lernex_demo_user", JSON.stringify(DEMO_USER));
     setUser(DEMO_USER);
   };
 
   const login = async (email: string, password: string) => {
     const trimmedEmail = email.trim().toLowerCase();
-
-    // Check for explicit demo credentials ONLY
-    if (
-      trimmedEmail === DEMO_CREDENTIALS.email.toLowerCase() &&
-      password === DEMO_CREDENTIALS.password
-    ) {
-      localStorage.setItem("lernex_demo_user", JSON.stringify(DEMO_USER));
-      setUser(DEMO_USER);
-      return;
-    }
 
     if (!isSupabaseConfigured) {
       throw new Error("Authentication service is unavailable. Please verify Supabase database configuration.");
@@ -387,14 +360,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    const storedDemo = localStorage.getItem("lernex_demo_user");
-    if (storedDemo) {
-      try {
-        setUser(JSON.parse(storedDemo));
-        return;
-      } catch {}
-    }
-
     setUser(null);
   };
 
@@ -405,7 +370,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ...data,
         name: [data.first_name, data.last_name].filter(Boolean).join(" ") || data.name || user?.name || "Learner",
       };
-      localStorage.setItem("lernex_demo_user", JSON.stringify(updatedUser));
       setUser(updatedUser);
       return;
     }

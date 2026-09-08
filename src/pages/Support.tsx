@@ -361,6 +361,10 @@ export default function Support() {
           }),
         });
 
+        if (response.status === 401) {
+          throw new Error("Please sign in before submitting a support ticket.");
+        }
+
         if (response.ok) {
           const data = await response.json();
           if (data.success && data.ticket) {

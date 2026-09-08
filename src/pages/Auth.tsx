@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useAuth, DEMO_CREDENTIALS, isDemoUser } from "@/context/AuthContext";
+import { useAuth, isDemoUser } from "@/context/AuthContext";
 import { Link, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -9,7 +9,6 @@ import {
   User,
   Phone,
   ArrowLeft,
-  CheckCircle2,
   Zap,
   LogIn,
   Eye,
@@ -63,7 +62,6 @@ export default function Auth() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const [autofilled, setAutofilled] = useState(false);
 
   const handleDemoLogin = async () => {
     try {
@@ -77,15 +75,6 @@ export default function Auth() {
     } finally {
       setDemoLoading(false);
     }
-  };
-
-  const handleFillDemo = () => {
-    setEmail(DEMO_CREDENTIALS.email);
-    setPassword(DEMO_CREDENTIALS.password);
-    setIsSignUp(false);
-    setError("");
-    setAutofilled(true);
-    setTimeout(() => setAutofilled(false), 2000);
   };
 
   const handleGoogleLogin = async () => {
@@ -380,22 +369,11 @@ export default function Auth() {
                 </span>
               </div>
 
-              <div className="space-y-1.5 rounded-xl border border-slate-200 bg-white p-2.5 text-xs mb-3 font-mono">
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-500 text-[11px]">Email:</span>
-                  <code className="text-cyan-800 bg-cyan-50 px-2 py-0.5 rounded border border-cyan-200 font-semibold">
-                    {DEMO_CREDENTIALS.email}
-                  </code>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-500 text-[11px]">Password:</span>
-                  <code className="text-cyan-800 bg-cyan-50 px-2 py-0.5 rounded border border-cyan-200 font-semibold">
-                    {DEMO_CREDENTIALS.password}
-                  </code>
-                </div>
-              </div>
+                <p className="mb-3 rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-600">
+                  Demo access is limited to this one-click preview session. It is not a real account and does not access private server data.
+                </p>
 
-              <div className="flex flex-col sm:flex-row gap-2">
+                <div className="flex flex-col gap-2">
                 <button
                   type="button"
                   onClick={handleDemoLogin}
@@ -411,22 +389,6 @@ export default function Auth() {
                     <>
                       <LogIn className="h-3.5 w-3.5" />
                       <span>1-Click Demo Login</span>
-                    </>
-                  )}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleFillDemo}
-                  className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-bold text-slate-700 hover:border-cyan-400 hover:bg-slate-50 transition-all cursor-pointer shadow-sm"
-                  title="Autofill inputs with credentials"
-                >
-                  {autofilled ? (
-                    <span className="text-emerald-600 font-bold flex items-center gap-1 animate-fade-in">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> Filled!
-                    </span>
-                  ) : (
-                    <>
-                      <span>✍️</span> Autofill
                     </>
                   )}
                 </button>
