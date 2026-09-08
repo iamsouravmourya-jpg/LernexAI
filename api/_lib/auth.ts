@@ -1,5 +1,5 @@
 import type { VercelRequest } from "@vercel/node";
-import { createClient, type User } from "@supabase/supabase-js";
+import type { User } from "@supabase/supabase-js";
 
 export async function requireUser(req: VercelRequest): Promise<User | null> {
   try {
@@ -12,9 +12,14 @@ export async function requireUser(req: VercelRequest): Promise<User | null> {
     const anonKey = (process.env.VITE_SUPABASE_ANON_KEY || "").trim();
     if (!url || !anonKey) return null;
 
-    const client = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
-    const { data, error } = await client.auth.getUser(authorization.slice(7));
-    return error ? null : data.user;
+    const response = await fetch(`${url}/auth/v1/user`, {
+      headers: {
+        apikey: anonKey,
+        Authorization: authorization,
+      },
+    });
+    if (!response.ok) return null;
+    return await response.json() as User;
   } catch (error) {
     console.error("[Auth] Supabase token validation failed:", error);
     return null;
