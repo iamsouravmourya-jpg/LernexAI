@@ -97,7 +97,7 @@ export default function Auth() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSignUp && !termsAccepted) {
-      setError("Please accept the Terms of Service and Privacy Policy to proceed with your trial.");
+      setError("Please accept the Terms of Service and Privacy Policy to create your account.");
       return;
     }
 
@@ -108,7 +108,7 @@ export default function Auth() {
       if (isSignUp) {
         const result = await signup(email, password, firstName, lastName, phone);
         if (!result.sessionCreated) {
-          setError("Account created! Check your email to verify, then sign in to begin your trial.");
+          setError("Account created! Check your email to verify it, then sign in to continue.");
           setIsSignUp(false);
           setIsLoading(false);
           return;
@@ -119,7 +119,10 @@ export default function Auth() {
 
       setLocation("/dashboard", { replace: true });
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Authentication failed. Please check your credentials.";
+      const rawMessage = err instanceof Error ? err.message : "";
+      const message = /email address.*invalid|invalid email/i.test(rawMessage)
+        ? "Please enter a valid email address, such as name@example.com."
+        : rawMessage || "Authentication failed. Please check your details and try again.";
       setError(message);
     } finally {
       setIsLoading(false);
@@ -299,7 +302,7 @@ export default function Auth() {
                 )}
                 <span className="relative z-10 flex items-center justify-center gap-1.5">
                   <Sparkles className="h-3.5 w-3.5 text-cyan-700" />
-                  Start Free Trial
+                  Create Free Account
                 </span>
               </button>
             </div>
@@ -309,7 +312,7 @@ export default function Auth() {
               <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
                 {isSignUp ? (
                   <span>
-                    Start Your <GradientText>14-Day Free Trial</GradientText>
+                    Create Your <GradientText>Free Account</GradientText>
                   </span>
                 ) : (
                   <span>
@@ -373,7 +376,7 @@ export default function Auth() {
               </div>
               <div className="relative flex justify-center text-center">
                 <span className="bg-white px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                  {isSignUp ? "or start trial with email" : "or continue with email"}
+                  {isSignUp ? "or create an account with email" : "or continue with email"}
                 </span>
               </div>
             </div>
@@ -523,10 +526,10 @@ export default function Auth() {
                       <Link href="/privacy" className="text-cyan-700 font-bold hover:underline">
                         Privacy Policy
                       </Link>
-                      . Includes 14-day free trial.
+                      . Create a free LernexAI account.
                       {!termsAccepted && (
                         <span className="block text-red-600 font-bold mt-0.5">
-                          Please accept to activate your trial.
+                          Please accept to create your account.
                         </span>
                       )}
                     </span>
@@ -551,7 +554,7 @@ export default function Auth() {
                   </>
                 ) : (
                   <>
-                    <span>{isSignUp ? "Activate 14-Day Free Trial" : "Log In to Dashboard"}</span>
+                    <span>{isSignUp ? "Create Free Account" : "Log In to Dashboard"}</span>
                     <ArrowRight className="h-4 w-4 stroke-[2.5]" />
                   </>
                 )}
@@ -581,7 +584,7 @@ export default function Auth() {
                   <>
                     New to LernexAI?{" "}
                     <strong className="text-cyan-700 font-bold underline underline-offset-4">
-                      Start 14-Day Free Trial
+                      Create a Free Account
                     </strong>
                   </>
                 )}
