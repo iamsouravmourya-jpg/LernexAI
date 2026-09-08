@@ -153,7 +153,13 @@ function saveCreditBatches(userKey: string, batches: PurchasedCreditBatch[]) {
 }
 
 export function getDailyChatStatus(userId?: string | null, isPro = false): ChatUsageStatus {
-  const dailyLimit = isPro ? 50 : 10;
+  const isDemo =
+    userId === "00000000-0000-0000-0000-000000000001" ||
+    userId === "demo-user-12345" ||
+    (typeof window !== "undefined" && Boolean(localStorage.getItem("lernex_demo_user")));
+
+  const effectivePro = isPro || isDemo;
+  const dailyLimit = isDemo ? 100 : effectivePro ? 50 : 10;
   const userKey = userId || "guest_user";
   const dateKey = getTodayKey();
   const usageStorageKey = `lernexai_usage_${userKey}_${dateKey}`;
@@ -171,9 +177,9 @@ export function getDailyChatStatus(userId?: string | null, isPro = false): ChatU
 
   const { batches, totalCredits: extraCredits } = getActiveCreditBatches(userKey);
 
-  const remainingDaily = Math.max(0, dailyLimit - usedToday);
-  const totalAvailable = remainingDaily + extraCredits;
-  const isExhausted = totalAvailable <= 0;
+  const remainingDaily = isDemo ? Math.max(50, dailyLimit - usedToday) : Math.max(0, dailyLimit - usedToday);
+  const totalAvailable = isDemo ? 100 : remainingDaily + extraCredits;
+  const isExhausted = isDemo ? false : totalAvailable <= 0;
 
   // Find earliest expiration date among active batches
   let earliestExpiryDate: string | null = null;

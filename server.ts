@@ -873,6 +873,77 @@ function getSupabaseAdmin() {
   return createClient(url, key);
 }
 
+// User Registration Endpoint (Auto-confirms email and creates user record)
+app.post(["/api/auth/register", "/auth/register"], async (req, res) => {
+  try {
+    const { email, password, firstName, lastName, phone } = req.body || {};
+    const trimmedEmail = (email || "").trim().toLowerCase();
+
+    if (!trimmedEmail || !password) {
+      return res.status(400).json({ error: "Email and password are required." });
+    }
+
+    const supabaseAdmin = getSupabaseAdmin();
+    if (!supabaseAdmin) {
+      return res.status(503).json({ error: "Database authentication service unavailable." });
+    }
+
+    const fullName = [firstName?.trim(), lastName?.trim()].filter(Boolean).join(" ") || trimmedEmail.split("@")[0];
+
+    // Create user with email_confirm: true so user does NOT get blocked by unconfirmed email error
+    const { data: userData, error: createError } = await supabaseAdmin.auth.admin.createUser({
+      email: trimmedEmail,
+      password,
+      email_confirm: true,
+      user_metadata: {
+        full_name: fullName,
+        first_name: firstName?.trim() || "",
+        last_name: lastName?.trim() || "",
+        phone: phone?.trim() || "",
+        avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(trimmedEmail)}&backgroundColor=e2e8f0`,
+        plan_type: "free",
+      },
+    });
+
+    if (createError) {
+      const msg = createError.message || "";
+      if (msg.toLowerCase().includes("already registered") || msg.toLowerCase().includes("already exists")) {
+        return res.status(400).json({ error: "An account with this email already exists. Please log in." });
+      }
+      return res.status(400).json({ error: msg });
+    }
+
+    const newUserId = userData?.user?.id;
+    if (newUserId) {
+      try {
+        await supabaseAdmin.from("users").upsert({
+          id: newUserId,
+          email: trimmedEmail,
+          first_name: firstName?.trim() || "",
+          last_name: lastName?.trim() || "",
+          phone: phone?.trim() || "",
+          avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(trimmedEmail)}&backgroundColor=e2e8f0`,
+          plan_type: "free",
+          role: "student",
+          daily_chat_limit: 10,
+          chats_used_today: 0,
+        }, { onConflict: "id" });
+      } catch (profileErr) {
+        console.warn("[Register Profile Upsert Warning]:", profileErr);
+      }
+    }
+
+    return res.json({
+      success: true,
+      message: "Account created and confirmed successfully.",
+      user: userData.user,
+    });
+  } catch (err: any) {
+    console.error("[Register Endpoint Error]:", err);
+    return res.status(500).json({ error: err?.message || "Registration failed" });
+  }
+});
+
 // ==========================================
 // RAZORPAY INTEGRATION ENDPOINTS
 // ==========================================

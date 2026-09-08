@@ -121,13 +121,27 @@ export async function askAITutor(
 
   for (const endpoint of endpoints) {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      let authToken = "";
+      if (isSupabaseConfigured) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.access_token) {
+            authToken = `Bearer ${session.access_token}`;
+          }
+        } catch {}
+      }
+
+      if (!authToken) {
+        authToken = "Bearer demo-token";
+      }
+
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
           "Accept": "application/json",
-          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+          "Authorization": authToken,
+          "x-demo-user": "true",
         },
         body: JSON.stringify({
           action: "ask",

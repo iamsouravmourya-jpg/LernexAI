@@ -182,6 +182,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
 
+        // Priority 2: Check for persisted demo user session
+        try {
+          const demoRaw = localStorage.getItem("lernex_demo_user");
+          if (demoRaw) {
+            const parsedDemo = JSON.parse(demoRaw);
+            if (parsedDemo && (parsedDemo.id || parsedDemo.email)) {
+              if (isMounted) {
+                setUser({ ...DEMO_USER, ...parsedDemo });
+                clearTimeout(timeoutId);
+                setLoading(false);
+                return;
+              }
+            }
+          }
+        } catch {
+          localStorage.removeItem("lernex_demo_user");
+        }
+
         if (isMounted) {
           setUser(null);
         }
@@ -231,6 +249,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const loginAsDemo = async () => {
+    localStorage.setItem("lernex_demo_user", JSON.stringify(DEMO_USER));
     setUser(DEMO_USER);
   };
 
@@ -246,7 +265,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       password,
     });
 
-    if (error) throw error;
+    if (error) {
+      const errLower = error.message?.toLowerCase() || "";
+      if (errLower.includes("email not confirmed")) {
+        throw new Error("Your email is not confirmed yet. If you just registered, check your inbox or try signing up again.");
+      }
+      if (errLower.includes("invalid login credentials")) {
+        throw new Error("Invalid email or password. Please verify your credentials or create a free account.");
+      }
+      throw error;
+    }
 
     if (data.user) {
       localStorage.removeItem("lernex_demo_user");
@@ -258,6 +286,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signup = async (email: string, password: string, firstName?: string, lastName?: string, phone?: string) => {
     const trimmedEmail = email.trim().toLowerCase();
 
+    // 1. First attempt registration via server endpoint (auto-confirms email using service role)
+    try {
+      const regRes = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: trimmedEmail,
+          password,
+          firstName: firstName?.trim(),
+          lastName: lastName?.trim(),
+          phone: phone?.trim(),
+        }),
+      });
+
+      if (regRes.ok) {
+        // Since the server auto-confirmed the email, we can immediately sign in!
+        const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({
+          email: trimmedEmail,
+          password,
+        });
+
+        if (!signInErr && signInData?.user) {
+          localStorage.removeItem("lernex_demo_user");
+          const userProfile = await fetchUserProfile(signInData.user);
+          setUser(userProfile);
+          return { sessionCreated: true };
+        }
+      } else {
+        const regJson = await regRes.json().catch(() => null);
+        if (regJson?.error && (regJson.error.includes("already exists") || regJson.error.includes("already registered"))) {
+          throw new Error(regJson.error);
+        }
+      }
+    } catch (apiErr: any) {
+      if (apiErr?.message?.includes("already exists") || apiErr?.message?.includes("already registered")) {
+        throw apiErr;
+      }
+      console.warn("[Register endpoint fallback to direct Supabase signup]:", apiErr);
+    }
+
+    // 2. Direct Supabase fallback
     if (!isSupabaseConfigured) {
       throw new Error("Authentication service is unavailable. Please verify database configuration.");
     }
@@ -274,6 +343,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           full_name: fullName,
           first_name: firstName?.trim() || null,
           last_name: lastName?.trim() || null,
+          phone: phone?.trim() || null,
           avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(trimmedEmail)}&backgroundColor=e2e8f0`,
           plan_type: "free"
         }
