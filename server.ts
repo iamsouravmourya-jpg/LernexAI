@@ -1257,6 +1257,10 @@ interface SupportTicketRecord {
 
 const TICKETS_FILE = path.join(process.cwd(), "data", "support_tickets.json");
 
+function escapeTelegramHtml(value: unknown) {
+  return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
 function loadTickets(): SupportTicketRecord[] {
   try {
     if (fs.existsSync(TICKETS_FILE)) {
@@ -1517,20 +1521,29 @@ Output JSON format strictly:
       const telegramToken = process.env.TELEGRAM_BOT_TOKEN || "";
       const telegramChatId = process.env.TELEGRAM_CHAT_ID || "";
 
-      const urgencyEmoji = urgency === "critical" || urgency === "high" ? "🔥" : "⚡";
+      const urgencyEmoji = urgency === "critical" || urgency === "high" ? "🔴" : "🟡";
       const hasScreenshot = Boolean(screenshot);
-      const tgText = `🚨 *NEW GENUINE SUPPORT TICKET* 🚨\n\n` +
-        `🎫 *Ticket ID:* \`${assignedId}\`\n` +
-        `👤 *User:* ${userName || "Learner"} (${userEmail || "Guest"})\n` +
-        `📂 *Category:* ${category || "General"}\n` +
-        `${urgencyEmoji} *Priority:* ${priority.toUpperCase()} (AI Urgency: ${urgency.toUpperCase()})\n` +
-        `📌 *Subject:* ${subject}\n\n` +
-        `💬 *Message:*\n"${message}"\n\n` +
-        (hasScreenshot ? `📷 *Screenshot attached by user*\n` : "") +
-        (url ? `🔗 *URL:* ${url}\n\n` : "") +
-        `🤖 *AI Assessment:* ${recommendedAction}\n` +
-        `🕒 *Received:* ${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}\n\n` +
-        `👉 *To reply: Swipe-Reply to this message OR type \`${assignedId}: your reply\`*`;
+      const tgText = [
+        "🛟 <b>LERNEX AI SUPPORT DESK</b>",
+        "<i>New learner request requires review</i>",
+        "━━━━━━━━━━━━━━━━━━━━",
+        `<b>Ticket</b>  <code>${escapeTelegramHtml(assignedId)}</code>`,
+        `<b>Received</b>  ${escapeTelegramHtml(new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "short" }))}`,
+        `<b>Category</b>  ${escapeTelegramHtml(category || "General")}`,
+        `${urgencyEmoji} <b>Priority</b>  ${escapeTelegramHtml(priority.toUpperCase())} <i>(AI: ${escapeTelegramHtml(urgency.toUpperCase())})</i>`,
+        "",
+        `<b>From</b>  ${escapeTelegramHtml(userName || "Learner")}\n<b>Email</b>  ${escapeTelegramHtml(userEmail || "Guest")}`,
+        `<b>Subject</b>  ${escapeTelegramHtml(subject)}`,
+        "",
+        "<b>Message</b>",
+        `<blockquote>${escapeTelegramHtml(message)}</blockquote>`,
+        url ? `<b>Page</b>  ${escapeTelegramHtml(url)}` : "",
+        hasScreenshot ? "📎 <i>Screenshot attached in the ticket</i>" : "",
+        "",
+        `<b>AI recommendation</b>  ${escapeTelegramHtml(recommendedAction)}`,
+        "━━━━━━━━━━━━━━━━━━━━",
+        `<i>Reply to this message, or send:</i> <code>${escapeTelegramHtml(assignedId)}: your reply</code>`,
+      ].filter(Boolean).join("\n");
 
       try {
         const tgRes = await fetch(`https://api.telegram.org/bot${telegramToken}/sendMessage`, {
@@ -1539,7 +1552,7 @@ Output JSON format strictly:
           body: JSON.stringify({
             chat_id: telegramChatId,
             text: tgText,
-            parse_mode: "Markdown",
+            parse_mode: "HTML",
           }),
         });
 

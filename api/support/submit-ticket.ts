@@ -6,6 +6,10 @@ function setCors(res: VercelResponse) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 }
 
+function escapeTelegramHtml(value: unknown) {
+  return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   setCors(res);
   if (req.method === "OPTIONS") return res.status(200).end();
@@ -94,23 +98,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   let telegramMessageId: number | undefined;
 
   if (isGenuine && telegramToken && telegramChatId) {
+    const priorityLabel = String(priority).toLowerCase() === "urgent" || String(priority).toLowerCase() === "high" ? "🔴" : "🟡";
     const telegramText = [
-      "🚨 NEW SUPPORT TICKET 🚨",
-      `Ticket ID: ${id}`,
-      `User: ${userName || "Learner"}${userEmail ? ` (${userEmail})` : ""}`,
-      `Category: ${category || "General"}`,
-      `Priority: ${String(priority).toUpperCase()}`,
-      `Subject: ${subjectText}`,
-      `Message: ${messageText}`,
-      url ? `URL: ${url}` : "",
-      "Reply to this message to respond to the learner.",
-    ].filter(Boolean).join("\n\n");
+      "🛟 <b>LERNEX AI SUPPORT DESK</b>",
+      "<i>New learner request requires review</i>",
+      "━━━━━━━━━━━━━━━━━━━━",
+      `<b>Ticket</b>  <code>${escapeTelegramHtml(id)}</code>`,
+      `<b>Received</b>  ${escapeTelegramHtml(new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "short" }))}`,
+      `<b>Category</b>  ${escapeTelegramHtml(category || "General")}`,
+      `${priorityLabel} <b>Priority</b>  ${escapeTelegramHtml(String(priority).toUpperCase())}`,
+      "",
+      `<b>From</b>  ${escapeTelegramHtml(userName || "Learner")}${userEmail ? `\n<b>Email</b>  ${escapeTelegramHtml(userEmail)}` : ""}`,
+      `<b>Subject</b>  ${escapeTelegramHtml(subjectText)}`,
+      "",
+      "<b>Message</b>",
+      `<blockquote>${escapeTelegramHtml(messageText)}</blockquote>`,
+      url ? `<b>Page</b>  ${escapeTelegramHtml(url)}` : "",
+      screenshot ? "📎 <i>Screenshot attached in the ticket</i>" : "",
+      "",
+      `<b>AI recommendation</b>  ${escapeTelegramHtml(recommendedAction)}`,
+      "━━━━━━━━━━━━━━━━━━━━",
+      `<i>Reply to this message, or send:</i> <code>${escapeTelegramHtml(id)}: your reply</code>`,
+    ].filter(Boolean).join("\n");
 
     try {
       const telegramResponse = await fetch(`https://api.telegram.org/bot${telegramToken}/sendMessage`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chat_id: telegramChatId, text: telegramText }),
+        body: JSON.stringify({ chat_id: telegramChatId, text: telegramText, parse_mode: "HTML" }),
       });
       const telegramData = await telegramResponse.json();
       telegramSent = Boolean(telegramData.ok);
