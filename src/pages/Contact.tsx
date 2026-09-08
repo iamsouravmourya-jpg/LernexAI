@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { 
   Mail, 
   Send, 
+  MessageSquare,
   Clock, 
   CheckCircle, 
   Copy, 
@@ -41,14 +42,29 @@ export default function Contact() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.message) return;
     setSending(true);
-    setTimeout(() => {
-      setSending(false);
+    try {
+      const response = await fetch('/api/support/submit-ticket', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          category: formData.category,
+          subject: formData.subject || `${formData.category} inquiry`,
+          message: formData.message,
+          userEmail: formData.email,
+          userName: formData.name,
+        }),
+      });
+      if (!response.ok) throw new Error('Message could not be sent. Please try again.');
       setSubmitted(true);
-    }, 1000);
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : 'Message could not be sent.');
+    } finally {
+      setSending(false);
+    }
   };
 
   return (

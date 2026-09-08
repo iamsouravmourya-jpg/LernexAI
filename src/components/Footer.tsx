@@ -10,7 +10,7 @@ export default function Footer() {
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
 
-  const handleSubscribe = (e: React.FormEvent) => {
+  const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !email.includes('@') || !email.includes('.')) {
       setStatus('error');
@@ -21,10 +21,19 @@ export default function Footer() {
     setStatus('submitting');
     setErrorMsg('');
 
-    setTimeout(() => {
+    try {
+      const response = await fetch('/api/newsletter/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      if (!response.ok) throw new Error('Subscription could not be saved. Please try again.');
       setStatus('success');
       setEmail('');
-    }, 600);
+    } catch (error) {
+      setStatus('error');
+      setErrorMsg(error instanceof Error ? error.message : 'Subscription could not be saved.');
+    }
   };
 
   const getLinkRoute = (label: string): string | null => {
