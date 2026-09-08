@@ -145,9 +145,13 @@ export default function Support() {
       const currentList: Ticket[] = raw ? JSON.parse(raw) : userTickets;
       const ticketIds = currentList.map((t) => t.id);
 
+      const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch("/api/support/sync-tickets", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
         body: JSON.stringify({
           ticketIds,
           userEmail: user?.email || undefined,

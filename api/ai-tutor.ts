@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import crypto from "crypto";
 import Groq from "groq-sdk";
+import { requireUser, setCors } from "./_lib/auth";
 
 let groqKeyRotationIndex = 0;
 
@@ -61,7 +62,7 @@ export function solveConcept(input: string) {
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Setup CORS headers
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  setCors(res);
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, x-groq-api-key");
 
@@ -72,6 +73,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === "GET") {
     return res.status(200).json({ status: "active", endpoint: "ai-tutor-groq" });
   }
+
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   try {
     let body = req.body;
@@ -84,8 +87,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     body = body || {};
 
+    const authenticatedUser = await requireUser(req);
+    if (!authenticatedUser) return res.status(401).json({ error: "Authentication required" });
+
     const action = body.action || "ask";
-    const isPro = Boolean(body.isPro || body.planType === "pro");
+    const isPro = authenticatedUser.app_metadata?.plan_type === "pro";
     const fallbackLimit = isPro ? 50 : 10;
 
     if (action === "history") {
@@ -141,6 +147,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // 1. Groq API with 4-key round-robin rotation and explicit await
     try {
       const groqCandidateKeys = [
+        process.env.GROQ_API_KEY,
         process.env.GROQ_API_KEY_1,
         process.env.GROQ_API_KEY_2,
         process.env.GROQ_API_KEY_3,

@@ -98,9 +98,10 @@ export async function createOrder(params: CreateOrderParams): Promise<RazorpayOr
   const amountInRupees = amountInPaise / 100;
 
   try {
+    const { data: { session } } = await supabase.auth.getSession();
     const res = await fetch("/api/razorpay/create-order", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}) },
       body: JSON.stringify({
         amount: amountInRupees,
         currency: "INR",
@@ -154,9 +155,10 @@ export async function verifyPayment(params: RazorpayPaymentResponse & {
   metadata?: any;
 }): Promise<VerifyPaymentResult> {
   try {
+    const { data: { session } } = await supabase.auth.getSession();
     const res = await fetch("/api/razorpay/verify-payment", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}) },
       body: JSON.stringify({
         razorpay_order_id: params.razorpay_order_id,
         razorpay_payment_id: params.razorpay_payment_id,

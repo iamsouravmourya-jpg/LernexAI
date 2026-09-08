@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Razorpay from "razorpay";
+import { requireUser, setCors } from "../_lib/auth";
 
 function getRazorpayInstance() {
   const key_id = (
@@ -43,7 +44,7 @@ function getRazorpayInstance() {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  setCors(res);
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
 
@@ -51,14 +52,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).end();
   }
 
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+  if (!(await requireUser(req))) return res.status(401).json({ error: "Authentication required" });
+
   try {
     const { amount, currency = "INR", receipt, notes = {}, purpose = "ai_credits" } = req.body || {};
 
     let numAmount = Number(amount);
     if (!numAmount || isNaN(numAmount) || numAmount <= 0) {
-      numAmount = 9900;
+      return res.status(400).json({ error: "A valid payment amount is required" });
     } else if (numAmount < 1000) {
       numAmount = Math.round(numAmount * 100);
+    }
+
+    const allowedAmounts: Record<string, number[]> = {
+      pro_subscription: [49900],
+      certificate: [9900],
+      ai_credits: [4900, 9900, 17900, 29900],
+    };
+    if (!(allowedAmounts[purpose] || []).includes(numAmount)) {
+      return res.status(400).json({ error: "Invalid amount for the selected product" });
     }
 
     const { client, key_id, is_mock } = getRazorpayInstance();
@@ -89,31 +102,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    const orderId = `order_${purpose}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    return res.status(200).json({
-      success: true,
-      id: orderId,
-      order_id: orderId,
-      amount: numAmount,
-      currency: currency || "INR",
-      receipt: orderReceipt,
-      status: "created",
-      key_id: key_id,
-      is_mock: true,
-    });
+    return res.status(503).json({ error: "Payment service is not configured" });
   } catch (err: any) {
     console.error("[Create Razorpay Order Vercel Error]:", err);
-    const fallbackId = `order_err_${Date.now()}`;
-    return res.status(200).json({
-      success: true,
-      id: fallbackId,
-      order_id: fallbackId,
-      amount: 9900,
-      currency: "INR",
-      receipt: `rcpt_${Date.now()}`,
-      status: "created",
-      key_id: process.env.VITE_RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID || "",
-      is_mock: true,
-    });
+    return res.status(500).json({ error: "Unable to create payment order" });
   }
 }
