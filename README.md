@@ -215,7 +215,7 @@ lernex-ai/
 
 ---
 
-## Copyright and Usage Notice
+## ⚠️ Copyright and Usage Notice
 
 Copyright (c) 2026 Sourav Maurya (`sourave7` / `iamsouravmourya-jpg`). All rights reserved.
 
