@@ -278,7 +278,7 @@ export default function Certificates() {
               ) : (
                 filteredCourses.map((course) => {
                   const progress = Math.min(100, Math.max(0, course.enrollment_progress || 0));
-                  const isCompleted = progress >= 100;
+                  const isCompleted = course.certificatePurchased || progress >= 100;
                   const isReadyToBuy = course.examPassed && course.examScore !== null && course.examScore >= 40 && !course.certificatePurchased;
                   const isSelected = selectedCourseId === course.id;
                   const grade = course.examScore !== null ? getCertificateGrade(course.examScore) : null;
@@ -318,7 +318,7 @@ export default function Certificates() {
                               </span>
                             ) : (
                               <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 px-2.5 py-0.5 rounded-full">
-                                {isCompleted ? "Exam Pending" : "In Progress"}
+                                {course.certificatePurchased ? "Course Complete" : isCompleted ? "Exam Pending" : "In Progress"}
                               </span>
                             )}
                           </div>

@@ -162,7 +162,7 @@ export async function createCertificatePurchase(params: {
           score: params.score,
           grade: params.grade,
           full_name: params.fullName,
-          purchase_amount: 9900,
+          purchase_amount: 19900,
           payment_id: params.paymentId || null,
         })
         .select()
@@ -184,7 +184,7 @@ export async function createCertificatePurchase(params: {
     score: params.score,
     grade: params.grade,
     full_name: params.fullName,
-    purchase_amount: 9900,
+    purchase_amount: 19900,
     payment_id: params.paymentId || `pay_demo_${Date.now()}`,
     issued_at: new Date().toISOString(),
     created_at: new Date().toISOString(),
