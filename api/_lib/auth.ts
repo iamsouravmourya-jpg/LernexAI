@@ -30,9 +30,11 @@ export function setCors(
   res: { setHeader: (name: string, value: string) => void },
   req?: { headers?: Record<string, string | string[] | undefined> }
 ) {
-  const origin = (typeof req?.headers?.origin === "string" && req.headers.origin)
-    ? req.headers.origin
-    : (process.env.APP_URL || process.env.VITE_APP_URL || "*");
+  const configuredOrigins = [process.env.APP_URL, process.env.VITE_APP_URL, "https://www.lernexai.site"]
+    .filter((value): value is string => Boolean(value))
+    .map((value) => value.replace(/\/$/, ""));
+  const requestOrigin = typeof req?.headers?.origin === "string" ? req.headers.origin : "";
+  const origin = configuredOrigins.includes(requestOrigin) ? requestOrigin : configuredOrigins[0];
   res.setHeader("Access-Control-Allow-Origin", origin);
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");

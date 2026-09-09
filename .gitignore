@@ -43,3 +43,6 @@ build
 
 # Supabase local project metadata
 supabase/.temp/
+
+# Accidental secret/artifact files
+*.exe

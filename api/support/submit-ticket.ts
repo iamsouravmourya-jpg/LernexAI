@@ -11,12 +11,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
   
   const authenticatedUser = await requireUser(req);
+  if (!authenticatedUser) return res.status(401).json({ error: "Authentication required" });
   const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body || {};
   const { ticketId, category, subject, message, priority = "normal", screenshot, url } = body;
   
-  const userEmail = authenticatedUser?.email || body.userEmail || "student@lernexai.com";
-  const userName = authenticatedUser?.user_metadata?.full_name || authenticatedUser?.email?.split("@")[0] || body.userName || "Student";
-  const userId = authenticatedUser?.id || body.userId;
+  const userEmail = authenticatedUser.email || "";
+  const userName = authenticatedUser.user_metadata?.full_name || authenticatedUser.email?.split("@")[0] || "Student";
+  const userId = authenticatedUser.id;
 
   if (!String(subject || "").trim() || !String(message || "").trim()) {
     return res.status(400).json({ error: "Subject and message are required" });
