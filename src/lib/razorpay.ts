@@ -105,6 +105,7 @@ export async function createOrder(params: CreateOrderParams): Promise<RazorpayOr
       body: JSON.stringify({
         amount: amountInRupees,
         currency: "INR",
+        purpose: params.purpose,
         receipt: `rcpt_${params.purpose}_${Date.now()}`,
         notes: { purpose: params.purpose }
       })
