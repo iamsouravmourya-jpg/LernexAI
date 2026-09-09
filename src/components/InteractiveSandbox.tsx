@@ -105,7 +105,7 @@ console.log("Calculated Statistics:", calculateStats(data));
       }
 
       if (language === "python") {
-        const worker = new Worker(new URL("../workers/python.worker.ts", import.meta.url), { type: "module" });
+        const worker = new Worker(new URL("../workers/python.worker.ts", import.meta.url));
         const timeoutId = window.setTimeout(() => {
           worker.terminate();
           setLogs([{ type: "error", text: "Python execution timed out after 10 seconds." }]);

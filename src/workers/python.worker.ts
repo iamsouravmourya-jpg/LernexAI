@@ -42,4 +42,3 @@ self.onmessage = async (event: MessageEvent<{ code: string }>) => {
   self.postMessage({ logs });
 };
 
-export {};
