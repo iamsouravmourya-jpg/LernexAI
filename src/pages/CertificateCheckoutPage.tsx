@@ -29,6 +29,7 @@ import { fetchFinalExamStatus } from "@/lib/finalExam";
 import { useToast } from "@/hooks/use-toast";
 import { getCertificateGrade } from "@/lib/certificate";
 import { getAppUrl } from "@/lib/siteUrl";
+import { createOrder, openRazorpayCheckout, verifyPayment } from "@/lib/razorpay";
 import { AcademicCertificate } from "@/components/AcademicCertificate";
 import {
   fetchCertificatePurchaseByCourse,
@@ -212,7 +213,7 @@ export default function CertificateCheckoutPage() {
     return purchaseRecord?.certificate_id ?? (courseId ? buildCertificateId(courseId, score ?? 80) : "LXAI-2026-X892");
   }, [purchaseRecord, courseId, score]);
 
-  // Payment Handler with simulated instant auto-success
+  // Payment Handler
   const handlePay = async () => {
     if (!canUnlockCertificate) {
       toast({
@@ -238,52 +239,65 @@ export default function CertificateCheckoutPage() {
 
     try {
       setIsPaying(true);
+      const order = await createOrder({ amount: 19900, purpose: "certificate" });
 
-      // Simulate payment processing
-      await new Promise((r) => setTimeout(r, 700));
+      await openRazorpayCheckout({
+        orderId: order.id,
+        amount: order.amount,
+        keyId: order.key_id,
+        userName: fullName.trim(),
+        userEmail: email.trim(),
+        onSuccess: async (response) => {
+          try {
+            const verification = await verifyPayment({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              item_type: "certificate",
+              user_id: user?.id,
+              metadata: { course_id: courseId, course_title: course.title, amount: 199 },
+            });
 
-      const randomPart = Math.random().toString(36).substring(2, 10).toUpperCase();
-      const certificateId = `LXAI-${new Date().getFullYear()}-${randomPart}`;
-      const mockPaymentId = `pay_sim_${Date.now()}`;
+            if (!verification.success) {
+              throw new Error(verification.error || "Payment verification failed. Please contact support.");
+            }
 
-      if (user?.id) {
-        await createCertificatePurchase({
-          userId: user.id,
-          courseId,
-          courseTitle: course.title,
-          score: score ?? 80,
-          grade: grade?.grade || "A",
-          fullName: fullName.trim(),
-          paymentId: mockPaymentId,
-          certificateId,
-        });
-      }
+            const randomPart = Math.random().toString(36).substring(2, 10).toUpperCase();
+            const certificateId = `LXAI-${new Date().getFullYear()}-${randomPart}`;
+            await createCertificatePurchase({
+              userId: user?.id || "",
+              courseId,
+              courseTitle: course.title,
+              score: score ?? 80,
+              grade: grade?.grade || "A",
+              fullName: fullName.trim(),
+              paymentId: response.razorpay_payment_id,
+              certificateId,
+            });
 
-      setIsPurchased(true);
-      if (user?.id) {
-        try {
-          const purchase = await fetchCertificatePurchaseByCourse(user.id, courseId);
-          if (purchase) setPurchaseRecord(purchase);
-        } catch {
-          // ignore fetch error
-        }
-      }
-
-      // Fire victory confetti
-      try {
-        confetti({
-          particleCount: 150,
-          spread: 80,
-          origin: { y: 0.5 },
-          colors: ["#6366f1", "#f59e0b", "#10b981", "#3b82f6"],
-        });
-      } catch {
-        // ignore confetti error
-      }
-
-      toast({
-        title: "Payment Successful & Certificate Unlocked! 🎉",
-        description: "Your official ₹199 certificate has been issued and verified.",
+            setIsPurchased(true);
+            const purchase = user?.id ? await fetchCertificatePurchaseByCourse(user.id, courseId) : null;
+            if (purchase) setPurchaseRecord(purchase);
+            confetti({ particleCount: 150, spread: 80, origin: { y: 0.5 }, colors: ["#6366f1", "#f59e0b", "#10b981", "#3b82f6"] });
+            toast({
+              title: "Payment Successful & Certificate Unlocked!",
+              description: "Your official certificate has been issued and verified.",
+            });
+          } catch (paymentError) {
+            toast({
+              title: "Payment verification failed",
+              description: paymentError instanceof Error ? paymentError.message : "Please contact support.",
+              variant: "destructive",
+            });
+          }
+        },
+        onFailure: (paymentError) => {
+          toast({
+            title: "Payment cancelled or failed",
+            description: paymentError.description || paymentError.message || "Please try again.",
+            variant: "destructive",
+          });
+        },
       });
     } catch (payError) {
       toast({

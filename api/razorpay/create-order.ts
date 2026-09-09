@@ -25,7 +25,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const allowedAmounts: Record<string, number[]> = {
       pro_subscription: [49900],
-      certificate: [9900],
+      certificate: [19900],
       ai_credits: [4900, 9900, 17900, 29900],
     };
     if (!(allowedAmounts[purpose] || []).includes(numAmount)) {
