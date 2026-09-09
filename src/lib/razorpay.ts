@@ -171,21 +171,15 @@ export async function verifyPayment(params: RazorpayPaymentResponse & {
       })
     });
 
+    const data = await res.json().catch(() => ({}));
     if (res.ok) {
-      const data = await res.json();
       return { success: true, message: data.message };
     }
+    if (!res.ok) {
+      return { success: false, error: data.error || `Payment verification failed (${res.status}).` };
+    }
   } catch (err) {
-    console.warn("[Razorpay Verify API Fallback]:", err);
-  }
-
-  if (isSupabaseConfigured) {
-    try {
-      const { data } = await supabase.functions.invoke<VerifyPaymentResult>("verify-razorpay-payment", {
-        body: params,
-      });
-      if (data) return data;
-    } catch {}
+    console.warn("[Razorpay Verify API Error]:", err);
   }
 
   return { success: false, error: "Payment verification service is unavailable. Please try again shortly." };
