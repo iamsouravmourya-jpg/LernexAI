@@ -139,14 +139,9 @@ export default function BuyCreditsModal({
         },
       });
     } catch (err: any) {
-      // Offline/sandbox fallback
       console.warn("Order creation notice:", err);
-      addPurchasedCredits(user?.id, pack.credits);
-      setSuccessMessage(`Payment successful! ${pack.credits} AI credits added (Valid for 1 Year).`);
-      setTimeout(() => {
-        setSuccessMessage(null);
-        handleClose();
-      }, 1800);
+      setError(err instanceof Error ? err.message : "Payment order could not be created. Please try again.");
+      setLoading(false);
     } finally {
       setLoading(false);
     }
