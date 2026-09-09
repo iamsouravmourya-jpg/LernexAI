@@ -110,17 +110,18 @@ export async function createOrder(params: CreateOrderParams): Promise<RazorpayOr
       })
     });
 
-    if (res.ok) {
-      const data = await res.json();
-      if (data.order_id) {
-        return {
-          id: data.order_id,
-          amount: data.amount || amountInPaise,
-          currency: data.currency || "INR",
-          key_id: data.key_id,
-          is_mock: Boolean(data.is_mock),
-        };
-      }
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.order_id) {
+      return {
+        id: data.order_id,
+        amount: data.amount || amountInPaise,
+        currency: data.currency || "INR",
+        key_id: data.key_id,
+        is_mock: Boolean(data.is_mock),
+      };
+    }
+    if (!res.ok) {
+      throw new Error(data.error || `Payment order could not be created (${res.status}).`);
     }
   } catch (err) {
     console.warn("[Razorpay API Error]:", err);

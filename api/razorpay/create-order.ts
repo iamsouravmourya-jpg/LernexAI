@@ -23,6 +23,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       numAmount = Math.round(numAmount * 100);
     }
 
+    numAmount = Math.round(numAmount);
+
     const allowedAmounts: Record<string, number[]> = {
       pro_subscription: [49900],
       certificate: [19900],
