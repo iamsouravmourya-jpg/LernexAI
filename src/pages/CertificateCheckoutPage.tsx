@@ -35,7 +35,6 @@ import {
   fetchCertificatePurchaseByCourse,
   recordCertificateDownload,
   buildCertificateId,
-  createCertificatePurchase,
   type CertificatePurchase,
 } from "@/lib/certificates";
 import {
@@ -255,25 +254,12 @@ export default function CertificateCheckoutPage() {
               razorpay_signature: response.razorpay_signature,
               item_type: "certificate",
               user_id: user?.id,
-              metadata: { course_id: courseId, course_title: course.title, amount: 199 },
+              metadata: { course_id: courseId, course_title: course.title, full_name: fullName.trim(), score: score ?? 80, grade: grade?.grade || "A", amount: 199 },
             });
 
             if (!verification.success) {
               throw new Error(verification.error || "Payment verification failed. Please contact support.");
             }
-
-            const randomPart = Math.random().toString(36).substring(2, 10).toUpperCase();
-            const certificateId = `LXAI-${new Date().getFullYear()}-${randomPart}`;
-            await createCertificatePurchase({
-              userId: user?.id || "",
-              courseId,
-              courseTitle: course.title,
-              score: score ?? 80,
-              grade: grade?.grade || "A",
-              fullName: fullName.trim(),
-              paymentId: response.razorpay_payment_id,
-              certificateId,
-            });
 
             setIsPurchased(true);
             const purchase = user?.id ? await fetchCertificatePurchaseByCourse(user.id, courseId) : null;
