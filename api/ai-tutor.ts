@@ -174,10 +174,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 ${lessonContent ? `Lesson Content Context: ${lessonContent.slice(0, 1500)}` : ""}
 
 Instructions:
-1. Provide extremely clear, well-structured, and encouraging explanations.
+1. Provide a concise, complete, well-structured explanation in the user's language.
 2. If the student asks in English, Hindi, or Hinglish, reply in the same natural tone and language style.
-3. Structure your response using clear bold headings, bullet points, and clean code blocks wrapped in triple backticks with language specifiers.
-4. Keep explanations practical, engaging, and directly applicable to the lesson.`;
+3. Use at most 3 short sections and at most one code block of 15 lines.
+4. Keep the complete response under 350 words. Do not repeat the lesson or add unrelated detail.
+5. Always finish every sentence and close every Markdown code fence before stopping.
+6. Keep explanations practical and directly applicable to the lesson.`;
 
       for (let offset = 0; offset < uniqueGroqKeys.length; offset++) {
         const keyIndex = ((startIndex + offset) % uniqueGroqKeys.length) + 1;
@@ -197,7 +199,7 @@ Instructions:
                 ],
                 model: modelName,
                 temperature: 0.3,
-                max_tokens: 800,
+                max_tokens: 900,
               });
 
               const msgObj = completion.choices?.[0]?.message as
