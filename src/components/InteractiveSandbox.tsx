@@ -4,30 +4,24 @@ import {
   RotateCcw, 
   Copy, 
   Check, 
-  Terminal, 
-  Bot, 
-  Sparkles, 
-  Code2, 
-  CheckCircle2, 
+  Terminal,
+  Bot,
+  Sparkles,
+  Code2,
+  CheckCircle2,
   AlertCircle,
   Eye,
   Maximize2
 } from "lucide-react";
-
 interface InteractiveSandboxProps {
   initialCode?: string;
   lessonTitle?: string;
   defaultLanguage?: "javascript" | "html" | "python" | "java" | "c" | "cpp" | "sql";
-  challenge?: {
-    task: string;
-    hint?: string;
-    expected_output?: string;
-    solution?: string;
-  };
+  challenge?: { task: string; hint?: string; expected_output?: string; solution?: string };
   onAskAI?: (code: string, error?: string) => void;
 }
 
-export default function InteractiveSandbox({ 
+export default function InteractiveSandbox({
   initialCode = `// Interactive Code Sandbox
 function calculateStats(numbers) {
   const sum = numbers.reduce((acc, curr) => acc + curr, 0);
@@ -42,24 +36,21 @@ console.log("Calculated Statistics:", calculateStats(data));
   lessonTitle = "Lesson Coding Practice",
   defaultLanguage = "javascript",
   challenge,
-  onAskAI
+  onAskAI,
 }: InteractiveSandboxProps) {
   const [code, setCode] = useState(initialCode);
   const [language, setLanguage] = useState<"javascript" | "html" | "python" | "java" | "c" | "cpp" | "sql">(defaultLanguage);
   const [activeTab, setActiveTab] = useState<"terminal" | "preview">("terminal");
   const [showHint, setShowHint] = useState(false);
-  
   const [logs, setLogs] = useState<Array<{ type: "log" | "error" | "info" | "success"; text: string }>>([
-    { type: "info", text: "Ready to execute code. Click 'Run Code ▶' to test snippet." }
+    { type: "info", text: "Ready to execute code. Click 'Run Code' to test snippet." },
   ]);
   const [isExecuting, setIsExecuting] = useState(false);
   const [executionTime, setExecutionTime] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
   const [htmlPreview, setHtmlPreview] = useState("");
-  
   const terminalRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to terminal output when execution completes
   useEffect(() => {
     if (!isExecuting && executionTime !== null) {
       terminalRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -67,9 +58,7 @@ console.log("Calculated Statistics:", calculateStats(data));
   }, [isExecuting, executionTime]);
 
   useEffect(() => {
-    if (initialCode) {
-      setCode(initialCode);
-    }
+    if (initialCode) setCode(initialCode);
   }, [initialCode]);
 
   useEffect(() => {
@@ -116,6 +105,33 @@ console.log("Calculated Statistics:", calculateStats(data));
       }
 
       if (language === "python") {
+        const worker = new Worker(new URL("../workers/python.worker.ts", import.meta.url), { type: "module" });
+        const timeoutId = window.setTimeout(() => {
+          worker.terminate();
+          setLogs([{ type: "error", text: "Python execution timed out after 10 seconds." }]);
+          setIsExecuting(false);
+          setExecutionTime(Math.round(performance.now() - startTime));
+        }, 10_000);
+
+        worker.onmessage = (event: MessageEvent<{ logs: Array<{ type: "log" | "error" | "info" | "success"; text: string }> }>) => {
+          window.clearTimeout(timeoutId);
+          worker.terminate();
+          setLogs(event.data.logs);
+          setIsExecuting(false);
+          setExecutionTime(Math.round(performance.now() - startTime));
+        };
+        worker.onerror = () => {
+          window.clearTimeout(timeoutId);
+          worker.terminate();
+          setLogs([{ type: "error", text: "Python runtime failed to load. Check your network and try again." }]);
+          setIsExecuting(false);
+          setExecutionTime(Math.round(performance.now() - startTime));
+        };
+        worker.postMessage({ code });
+        return;
+      }
+
+      if (language === "python" && false) {
         const pythonLogs: Array<{ type: "log" | "error" | "info" | "success"; text: string }> = [];
         pythonLogs.push({ type: "info", text: "Python 3.11 Runtime Initialized." });
         
@@ -437,6 +453,35 @@ console.log("Calculated Statistics:", calculateStats(data));
       }
 
       if (language === "sql") {
+        const worker = new Worker(new URL("../workers/sql.worker.ts", import.meta.url), { type: "module" });
+        const timeoutId = window.setTimeout(() => {
+          worker.terminate();
+          setLogs([{ type: "error", text: "SQL execution timed out after 5 seconds." }]);
+          setIsExecuting(false);
+          setExecutionTime(Math.round(performance.now() - startTime));
+        }, 5000);
+
+        worker.onmessage = (event: MessageEvent<{ logs: Array<{ type: "log" | "error" | "info" | "success"; text: string }> }>) => {
+          window.clearTimeout(timeoutId);
+          worker.terminate();
+          setLogs(event.data.logs);
+          setIsExecuting(false);
+          setExecutionTime(Math.round(performance.now() - startTime));
+        };
+
+        worker.onerror = () => {
+          window.clearTimeout(timeoutId);
+          worker.terminate();
+          setLogs([{ type: "error", text: "SQL worker failed to load. Refresh and try again." }]);
+          setIsExecuting(false);
+          setExecutionTime(Math.round(performance.now() - startTime));
+        };
+
+        worker.postMessage({ code });
+        return;
+      }
+
+      if (language === "sql" && false) {
         const sqlLogs: Array<{ type: "log" | "error" | "info" | "success"; text: string }> = [];
         sqlLogs.push({ type: "info", text: "PostgreSQL 16.2 / SQLite In-Memory RDBMS Engine Ready." });
 
@@ -509,56 +554,42 @@ console.log("Calculated Statistics:", calculateStats(data));
         return;
       }
 
-      // JavaScript Sandboxed Execution
-      const capturedLogs: Array<{ type: "log" | "error" | "info" | "success"; text: string }> = [];
-
-      const customConsole = {
-        log: (...args: any[]) => {
-          capturedLogs.push({
-            type: "log",
-            text: args.map(a => typeof a === "object" ? JSON.stringify(a, null, 2) : String(a)).join(" ")
-          });
-        },
-        error: (...args: any[]) => {
-          capturedLogs.push({
-            type: "error",
-            text: args.map(a => typeof a === "object" ? JSON.stringify(a, null, 2) : String(a)).join(" ")
-          });
-        },
-        info: (...args: any[]) => {
-          capturedLogs.push({
-            type: "info",
-            text: args.map(a => typeof a === "object" ? JSON.stringify(a, null, 2) : String(a)).join(" ")
-          });
-        }
-      };
-
-      try {
-        const runFn = new Function("console", code);
-        const result = runFn(customConsole);
-
-        if (result !== undefined) {
-          capturedLogs.push({
-            type: "success",
-            text: `[Return Value]: ${typeof result === "object" ? JSON.stringify(result, null, 2) : String(result)}`
-          });
-        }
-
-        if (capturedLogs.length === 0) {
-          capturedLogs.push({ type: "info", text: "Code executed successfully with no console output." });
-        }
-
-        capturedLogs.push({ type: "success", text: "⚡ Execution completed cleanly." });
-        setLogs(capturedLogs);
-      } catch (err: any) {
-        setLogs([
-          { type: "error", text: `Runtime Error: ${err.message || String(err)}` },
-          { type: "info", text: "Tip: Use 'Ask AI Tutor' to get instant debugging hints." }
-        ]);
-      } finally {
+      // Run JavaScript off the UI thread so loops and large calculations do not freeze the page.
+      if (code.length > 100_000) {
+        setLogs([{ type: "error", text: "Code is too large for this browser sandbox (maximum 100 KB)." }]);
         setIsExecuting(false);
         setExecutionTime(Math.round(performance.now() - startTime));
+        return;
       }
+
+      const worker = new Worker(new URL("../workers/sandbox.worker.ts", import.meta.url), { type: "module" });
+      const timeoutId = window.setTimeout(() => {
+        worker.terminate();
+        setLogs([
+          { type: "error", text: "Execution timed out after 5 seconds." },
+          { type: "info", text: "Try reducing the input size or splitting the calculation into smaller steps." },
+        ]);
+        setIsExecuting(false);
+        setExecutionTime(Math.round(performance.now() - startTime));
+      }, 5000);
+
+      worker.onmessage = (event: MessageEvent<{ logs: Array<{ type: "log" | "error" | "info" | "success"; text: string }> }>) => {
+        window.clearTimeout(timeoutId);
+        worker.terminate();
+        setLogs(event.data.logs);
+        setIsExecuting(false);
+        setExecutionTime(Math.round(performance.now() - startTime));
+      };
+
+      worker.onerror = () => {
+        window.clearTimeout(timeoutId);
+        worker.terminate();
+        setLogs([{ type: "error", text: "Sandbox worker failed to execute this code." }]);
+        setIsExecuting(false);
+        setExecutionTime(Math.round(performance.now() - startTime));
+      };
+
+      worker.postMessage({ code });
     }, 300);
   };
 
