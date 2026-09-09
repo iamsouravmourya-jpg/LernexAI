@@ -95,7 +95,7 @@ export default function BuyCreditsModal({
         userEmail: user?.email || "student@lernexai.com",
         onSuccess: async (response) => {
           try {
-            await verifyPayment({
+            const verification = await verifyPayment({
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
@@ -103,6 +103,10 @@ export default function BuyCreditsModal({
               user_id: user?.id,
               metadata: { credits: pack.credits, amount: pack.amountPaise / 100 }
             });
+
+            if (!verification.success) {
+              throw new Error(verification.error || "Payment could not be verified.");
+            }
 
             // Credit added to user balance with 1-year validity
             addPurchasedCredits(user?.id, pack.credits);
@@ -115,18 +119,8 @@ export default function BuyCreditsModal({
             try {
               confetti({ particleCount: 110, spread: 75, origin: { y: 0.55 } });
             } catch {}
-          } catch {
-            // Fallback for demo/test mode: still credit the user
-            addPurchasedCredits(user?.id, pack.credits);
-            setSuccessModal({
-              title: "Payment Successful! 🎉",
-              message: `Successfully added ${pack.credits} AI Credits to your balance! Valid for 1 full year.`,
-              details: `Package: ${pack.name} (${pack.credits} Credits) • Amount: ₹${pack.amountPaise / 100}`,
-              paymentId: response.razorpay_payment_id,
-            });
-            try {
-              confetti({ particleCount: 110, spread: 75, origin: { y: 0.55 } });
-            } catch {}
+          } catch (paymentError) {
+            setError(paymentError instanceof Error ? paymentError.message : "Payment could not be verified.");
           }
         },
         onFailure: (err) => {
