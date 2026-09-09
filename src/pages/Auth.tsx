@@ -348,7 +348,7 @@ export default function Auth() {
                 )}
                 <span className="relative z-10 flex items-center justify-center gap-1.5">
                   <Sparkles className="h-3.5 w-3.5 text-cyan-700" />
-                  Create Free Account
+                  Create Account
                 </span>
               </button>
             </div>
@@ -358,7 +358,7 @@ export default function Auth() {
               <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
                 {isSignUp ? (
                   <span>
-                    Create Your <GradientText>Free Account</GradientText>
+                    Create Your <GradientText>LernexAI Account</GradientText>
                   </span>
                 ) : (
                   <span>
@@ -368,7 +368,7 @@ export default function Auth() {
               </h2>
               <p className="mt-1.5 text-xs sm:text-sm text-slate-500">
                 {isSignUp
-                  ? "Zero credit card required. Full instant access to courses, AI tutor, and sandboxes."
+                  ? "Create your account to access courses, AI tutoring, sandboxes, and available plans."
                   : "Sign in to resume your active learning path and projects."}
               </p>
             </div>
@@ -572,7 +572,7 @@ export default function Auth() {
                       <Link href="/privacy" className="text-cyan-700 font-bold hover:underline">
                         Privacy Policy
                       </Link>
-                      . Create a free LernexAI account.
+                      . Create your LernexAI account.
                       {!termsAccepted && (
                         <span className="block text-red-600 font-bold mt-0.5">
                           Please accept to create your account.
@@ -600,7 +600,7 @@ export default function Auth() {
                   </>
                 ) : (
                   <>
-                    <span>{isSignUp ? "Create Free Account" : "Log In to Dashboard"}</span>
+                    <span>{isSignUp ? "Create Account" : "Log In to Dashboard"}</span>
                     <ArrowRight className="h-4 w-4 stroke-[2.5]" />
                   </>
                 )}
@@ -630,7 +630,7 @@ export default function Auth() {
                   <>
                     New to LernexAI?{" "}
                     <strong className="text-cyan-700 font-bold underline underline-offset-4">
-                      Create a Free Account
+                      Create an Account
                     </strong>
                   </>
                 )}
