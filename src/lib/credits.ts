@@ -1,3 +1,5 @@
+import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+
 export interface CreditPackage {
   id: string;
   credits: number;
@@ -269,6 +271,43 @@ export function addPurchasedCredits(userId: string | null | undefined, creditAmo
 
   const total = batches.reduce((sum, b) => sum + b.credits, 0);
   return total;
+}
+
+export async function syncCreditsFromSupabase(userId?: string | null): Promise<number | null> {
+  if (!userId || !isSupabaseConfigured) return null;
+
+  const { data, error } = await supabase
+    .from("users")
+    .select("extra_credits")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (error || !data) return null;
+
+  const creditTotal = Math.max(0, Number(data.extra_credits) || 0);
+  const userKey = userId;
+  const batchesStorageKey = `lernexai_credit_batches_${userKey}`;
+  const legacyStorageKey = `lernexai_credits_${userKey}`;
+
+  if (creditTotal === 0) {
+    localStorage.removeItem(batchesStorageKey);
+    localStorage.setItem(legacyStorageKey, "0");
+  } else {
+    const now = new Date();
+    const expiry = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000).toISOString();
+    saveCreditBatches(userKey, [{
+      id: `supabase_sync_${Date.now()}`,
+      credits: creditTotal,
+      purchasedAt: now.toISOString(),
+      expiresAt: expiry,
+    }]);
+  }
+
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent(CREDITS_EVENT, { detail: { userKey, synced: creditTotal } }));
+  }
+
+  return creditTotal;
 }
 
 export function subscribeToCredits(callback: () => void): () => void {

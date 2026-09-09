@@ -19,7 +19,7 @@ import {
   CalendarCheck,
   Info
 } from "lucide-react";
-import { CREDIT_PACKAGES, CreditPackage, addPurchasedCredits, getDailyChatStatus, subscribeToCredits } from "@/lib/credits";
+import { CREDIT_PACKAGES, CreditPackage, addPurchasedCredits, getDailyChatStatus, subscribeToCredits, syncCreditsFromSupabase } from "@/lib/credits";
 
 const PRO_AMOUNT_PAISE = 49900;
 
@@ -42,6 +42,9 @@ export default function Upgrade() {
 
   useEffect(() => {
     setChatStatus(getDailyChatStatus(user?.id, isPro));
+    void syncCreditsFromSupabase(user?.id).then(() => {
+      setChatStatus(getDailyChatStatus(user?.id, isPro));
+    });
     const unsubscribe = subscribeToCredits(() => {
       setChatStatus(getDailyChatStatus(user?.id, isPro));
     });
