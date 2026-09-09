@@ -256,6 +256,7 @@ console.log("Calculated Statistics:", calculateStats(data));
           javaLogs.push({ type: "error", text: `Runtime/Compilation Error: ${javaErr?.message || "Syntax error in Java code."}` });
         }
 
+        javaLogs.unshift({ type: "info", text: "Java browser preview mode is experimental; advanced compiler features require a real compiler runtime." });
         setLogs(javaLogs);
         setIsExecuting(false);
         setExecutionTime(Math.round(performance.now() - startTime));
@@ -365,6 +366,7 @@ console.log("Calculated Statistics:", calculateStats(data));
           cLogs.push({ type: "error", text: `Compiler/Runtime Error: ${cErr?.message || "Syntax error in C code."}` });
         }
 
+        cLogs.unshift({ type: "info", text: "C browser preview mode is experimental; advanced compiler features require a real compiler runtime." });
         setLogs(cLogs);
         setIsExecuting(false);
         setExecutionTime(Math.round(performance.now() - startTime));
@@ -446,6 +448,7 @@ console.log("Calculated Statistics:", calculateStats(data));
           cppLogs.push({ type: "error", text: `C++ Runtime/Compilation Error: ${cppErr?.message || "Syntax error in C++ code."}` });
         }
 
+        cppLogs.unshift({ type: "info", text: "C++ browser preview mode is experimental; advanced compiler features require a real compiler runtime." });
         setLogs(cppLogs);
         setIsExecuting(false);
         setExecutionTime(Math.round(performance.now() - startTime));
