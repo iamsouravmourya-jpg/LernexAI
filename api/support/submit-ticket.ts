@@ -102,10 +102,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const isUrgent = String(priority).toLowerCase() === "urgent" || urgency === "critical";
     const isHigh = String(priority).toLowerCase() === "high" || urgency === "high";
     const priorityBadge = isUrgent
-      ? "🚨 <b>Priority:</b> URGENT (Critical)"
+      ? "🚨 <b>Priority:</b> Critical"
       : isHigh
-      ? "🔴 <b>Priority:</b> HIGH"
-      : "🟡 <b>Priority:</b> NORMAL";
+      ? "🟠 <b>Priority:</b> High"
+      : "🟢 <b>Priority:</b> Normal";
 
     const categoryIcons: Record<string, string> = {
       course_request: "🎓",
@@ -113,11 +113,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       feature: "💡",
       course: "📚",
       billing: "💳",
-      account: "👤",
-      general: "🏷",
+      account: "⚙️",
+      general: "🏷️",
     };
     const catKey = (category || "general").toLowerCase().replace(/[^a-z_]/g, "");
-    const catIcon = categoryIcons[catKey] || "🏷";
+    const catIcon = categoryIcons[catKey] || "🏷️";
 
     const istDate = new Date().toLocaleString("en-IN", {
       timeZone: "Asia/Kolkata",
@@ -126,32 +126,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     const telegramText = [
-      "🛟 <b>LERNEX AI · STUDENT SUPPORT DESK</b>",
-      "━━━━━━━━━━━━━━━━━━━━━━━━━",
-      `🎫 <b>Ticket ID:</b> <code>${escapeTelegramHtml(id)}</code>`,
-      `📅 <b>Received:</b> ${escapeTelegramHtml(istDate)}`,
+      "⚡ <b>LERNEX AI · SUPPORT TICKET</b>",
+      "━━━━━━━━━━━━━━━━━━━━━━",
+      `🎫 <b>Ticket:</b> <code>${escapeTelegramHtml(id)}</code>`,
       `${catIcon} <b>Category:</b> ${escapeTelegramHtml(category || "General")}`,
       `${priorityBadge}`,
-      "━━━━━━━━━━━━━━━━━━━━━━━━━",
-      `👤 <b>Student:</b> ${escapeTelegramHtml(userName || "Learner")}`,
-      userEmail ? `📧 <b>Email:</b> ${escapeTelegramHtml(userEmail)}` : "",
-      userId ? `🆔 <b>User ID:</b> <code>${escapeTelegramHtml(userId)}</code>` : "",
-      "",
+      `⏱️ <b>Time:</b> ${escapeTelegramHtml(istDate)}`,
+      "━━━━━━━━━━━━━━━━━━━━━━",
       `📌 <b>Subject:</b>`,
       `<b>${escapeTelegramHtml(subjectText)}</b>`,
       "",
-      `💬 <b>Student Query:</b>`,
+      `💬 <b>User Query:</b>`,
       `<blockquote>${escapeTelegramHtml(messageText)}</blockquote>`,
-      url ? `🌐 <b>Page URL:</b> ${escapeTelegramHtml(url)}` : "",
-      screenshot ? "📎 <b>Attachment:</b> <i>Screenshot attached in student dashboard</i>" : "",
+      url ? `🌐 <b>Page Context:</b> <code>${escapeTelegramHtml(url)}</code>` : "",
+      screenshot ? "📎 <b>Attachment:</b> <i>Screenshot provided on dashboard</i>" : "",
       "",
-      recommendedAction ? `🤖 <b>AI Triage:</b>\n<i>${escapeTelegramHtml(recommendedAction)}</i>\n` : "",
-      "━━━━━━━━━━━━━━━━━━━━━━━━━",
-      "✍️ <b>HOW TO REPLY TO STUDENT:</b>",
-      "1️⃣ <b>Swipe Reply</b> to this message directly with your text.",
-      `2️⃣ OR reply with: <code>${escapeTelegramHtml(id)}: your reply here</code>`,
-      "",
-      "✅ <i>Your reply will instantly mark this ticket 'Resolved' and appear live on the student's Help Center dashboard!</i>",
+      recommendedAction ? `🤖 <b>AI Suggested Action:</b>\n<blockquote>${escapeTelegramHtml(recommendedAction)}</blockquote>\n` : "",
+      "━━━━━━━━━━━━━━━━━━━━━━",
+      "⚡ <b>Swipe-Reply to this message to answer</b>",
+      "<i>Response automatically syncs live to student dashboard.</i>",
     ].filter(Boolean).join("\n");
 
     try {
