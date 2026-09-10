@@ -164,7 +164,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       telegramSent = Boolean(telegramData.ok);
       telegramMessageId = telegramData.result?.message_id;
     } catch (error) {
-      console.warn("[Support] Telegram notification failed:", error);
+      const safeErrorMessage = String(error instanceof Error ? error.message : error).replace(/bot\d+:[A-Za-z0-9_-]+/g, "bot[REDACTED]");
+      console.warn("[Support] Telegram notification failed:", safeErrorMessage);
     }
   }
 

@@ -1528,7 +1528,8 @@ async function pollTelegramUpdates() {
               }),
             });
           } catch (replyErr) {
-            console.warn("[Telegram Reply Confirm Err]:", replyErr);
+            const safeReplyErr = String(replyErr instanceof Error ? replyErr.message : replyErr).replace(/bot\d+:[A-Za-z0-9_-]+/g, "bot[REDACTED]");
+            console.warn("[Telegram Reply Confirm Err]:", safeReplyErr);
           }
         }
       }
@@ -1679,14 +1680,15 @@ Output JSON format strictly:
         if (tgJson.ok) {
           telegramSent = true;
           telegramMessageId = tgJson.result?.message_id;
-          console.log(`[Telegram Alert Sent] Ticket ${assignedId} delivered to chat ${telegramChatId}`);
+          console.log(`[Telegram Alert Sent] Ticket ${assignedId} delivered to configured Telegram chat`);
         } else {
           telegramError = tgJson.description || "Telegram API error";
-          console.warn(`[Telegram Alert Warning]:`, tgJson);
+          console.warn(`[Telegram Alert Warning]:`, tgJson?.description || "Telegram delivery error");
         }
       } catch (err: any) {
-        telegramError = err?.message || "Telegram network error";
-        console.warn(`[Telegram Alert Error]:`, err);
+        const safeErrMsg = String(err?.message || err).replace(/bot\d+:[A-Za-z0-9_-]+/g, "bot[REDACTED]");
+        telegramError = safeErrMsg || "Telegram network error";
+        console.warn(`[Telegram Alert Error]:`, safeErrMsg);
       }
     }
 
@@ -1862,9 +1864,13 @@ app.post("/api/support/sync-tickets", async (req, res) => {
 });
 
 // Telegram Connection Test Endpoint
-app.post("/api/support/test-telegram", async (_req, res) => {
+app.post("/api/support/test-telegram", async (req, res) => {
   const telegramToken = process.env.TELEGRAM_BOT_TOKEN || "";
   const telegramChatId = process.env.TELEGRAM_CHAT_ID || "";
+
+  if (!telegramToken || !telegramChatId) {
+    return res.status(503).json({ error: "Telegram bot service is not configured" });
+  }
 
   try {
     const tgRes = await fetch(`https://api.telegram.org/bot${telegramToken}/sendMessage`, {
@@ -1877,9 +1883,13 @@ app.post("/api/support/test-telegram", async (_req, res) => {
       }),
     });
     const data = await tgRes.json();
-    return res.json(data);
+    if (!data.ok) {
+      return res.status(502).json({ success: false, error: "Telegram delivery failed" });
+    }
+    return res.json({ success: true, message: "Test alert dispatched to configured Telegram chat" });
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    const safeMsg = String(err?.message || err).replace(/bot\d+:[A-Za-z0-9_-]+/g, "bot[REDACTED]");
+    return res.status(500).json({ error: "Telegram service temporarily unreachable" });
   }
 });
 
@@ -1894,6 +1904,19 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), "dist");
+    // Security guard: Prevent static exposure of bundled server code and sourcemaps
+    app.use((req, res, next) => {
+      const cleanPath = req.path.toLowerCase();
+      if (
+        cleanPath.includes("server.cjs") ||
+        cleanPath.endsWith(".map") ||
+        cleanPath.endsWith(".ts") ||
+        cleanPath.includes(".env")
+      ) {
+        return res.status(404).end();
+      }
+      next();
+    });
     app.use(express.static(distPath));
     app.get("*all", (req, res) => {
       res.sendFile(path.join(distPath, "index.html"));

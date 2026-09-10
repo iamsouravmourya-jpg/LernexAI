@@ -155,7 +155,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
       }
     } catch (tgErr) {
-      console.warn("[Sync Tickets] Telegram getUpdates check error:", tgErr);
+      const safeErr = String(tgErr instanceof Error ? tgErr.message : tgErr).replace(/bot\d+:[A-Za-z0-9_-]+/g, "bot[REDACTED]");
+      console.warn("[Sync Tickets] Telegram getUpdates check error:", safeErr);
     }
   }
 
