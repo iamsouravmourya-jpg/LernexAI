@@ -42,6 +42,7 @@
 - [Step-by-Step Installation & Quickstart](#-step-by-step-installation--quickstart)
 - [Security, RLS & Zero-Leak Production Hardening](#-security-rls--zero-leak-production-hardening)
 - [👨‍💻 Maker, Story & Hackathon Submission](#-maker-story--hackathon-submission)
+- [⚖️ Intellectual Property, Copyright & Non-Distribution Notice](#️-intellectual-property-copyright--non-distribution-notice)
 
 ---
 
@@ -425,8 +426,39 @@ This project is submitted with pride for hackathon evaluation and technical revi
 
 ---
 
+## ⚖️ Intellectual Property, Copyright & Non-Distribution Notice
+
+> **⚠️ ATTENTION TO ALL VISITORS, CRAWLERS, AND THIRD PARTIES:**
+> **THIS REPOSITORY IS STRICTLY PROPRIETARY AND NOT OPEN-SOURCE.**
+
+```
+========================================================================================
+   PROPRIETARY & CONFIDENTIAL INTELLECTUAL PROPERTY — ALL RIGHTS STRICTLY RESERVED
+========================================================================================
+```
+
+**Copyright © 2026 Sourav Maurya (`sourave7` / `iamsouravmourya-jpg`). All rights reserved.**
+
+1. **Evaluation-Only Access**:
+   This repository and its contents are made publicly visible **solely and exclusively for the evaluation, benchmarking, and judging process of the designated Hackathon committee and authorized technical reviewers**.
+   
+2. **No License Granted (NOT Open-Source)**:
+   This software is **NOT** licensed under MIT, Apache, GPL, or any open-source license. Visibility of this code does not grant any permission, license, or right to use, copy, reproduce, fork, download, distribute, or modify any portion of this project.
+
+3. **Strict Prohibition on Downloading, Cloning & Duplication**:
+   - Any unauthorized downloading, cloning, archiving, scraping, reverse engineering, decompiling, or distribution of this source code, backend logic, prompt architecture, or UI/UX design is **strictly prohibited**.
+   - No part of this platform may be copied or integrated into any personal, academic, or commercial product without express, prior written authorization from the copyright holder.
+
+4. **Legal Enforcement**:
+   Any violation or unauthorized commercial/non-commercial reproduction of this intellectual property will be pursued under applicable copyright and intellectual property protection laws.
+
+For legitimate inquiries, academic partnerships, or institutional licensing, please reach out directly to **Sourav Maurya** via official GitHub contact channels.
+
+---
+
 <div align="center">
   <b>Built with grit, passion, and relentless optimization by Sourav Maurya.</b><br/>
-  <sub>Empowering the next generation of engineers with active, intelligent, and verifiable mastery.</sub>
+  <sub>Engineered with precision. All rights strictly reserved by the author.</sub>
 </div>
+
 

@@ -75,8 +75,12 @@ export default function Auth() {
   useEffect(() => {
     // If URL has ?logout=true or ?switch=true, purge session immediately
     const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
-    if (params?.get("logout") === "true" || params?.get("switch") === "true") {
-      void logout();
+    if (params?.get("logout") === "true") {
+      void logout("/");
+      return;
+    }
+    if (params?.get("switch") === "true") {
+      void logout("");
       return;
     }
 

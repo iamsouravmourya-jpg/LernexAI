@@ -65,6 +65,9 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
 
   useEffect(() => {
     if (!loading && !user) {
+      if (typeof window !== "undefined" && sessionStorage.getItem("lernex_is_logging_out") === "true") {
+        return;
+      }
       setLocation("/auth");
     }
   }, [loading, user, setLocation]);
@@ -175,6 +178,14 @@ function Router() {
 }
 
 function App() {
+  useEffect(() => {
+    try {
+      if (typeof window !== "undefined" && window.location.pathname === "/") {
+        sessionStorage.removeItem("lernex_is_logging_out");
+      }
+    } catch (_) {}
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>

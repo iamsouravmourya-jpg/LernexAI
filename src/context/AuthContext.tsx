@@ -29,7 +29,7 @@ interface AuthContextType {
     phone?: string
   ) => Promise<{ sessionCreated: boolean }>;
   loginWithGoogle: () => Promise<void>;
-  logout: () => Promise<void>;
+  logout: (redirectTo?: string) => Promise<void>;
   refreshUser: () => Promise<void>;
   updateUser?: (data: Partial<User>) => Promise<void>;
 }
@@ -336,7 +336,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error) throw error;
   };
 
-  const logout = async () => {
+  const logout = async (redirectTo: string = "/") => {
+    try {
+      sessionStorage.setItem("lernex_is_logging_out", "true");
+    } catch (_) {}
+
     localStorage.removeItem("lernex_demo_user");
     if (isSupabaseConfigured) {
       try {
@@ -346,6 +350,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
     setUser(null);
+
+    if (typeof window !== "undefined" && redirectTo) {
+      window.location.replace(redirectTo);
+    }
   };
 
   const refreshUser = async () => {

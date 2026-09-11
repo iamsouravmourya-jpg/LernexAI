@@ -84,10 +84,12 @@ export default function DashboardLayout({ children, title, subtitle, headerBread
 
   const handleLogout = async () => {
     try {
-      await logout();
-      setLocation('/');
+      await logout('/');
     } catch (err) {
       console.error('Logout error:', err);
+      if (typeof window !== "undefined") {
+        window.location.replace('/');
+      }
     }
   };
 
