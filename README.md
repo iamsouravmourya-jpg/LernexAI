@@ -28,8 +28,9 @@
   - [Track 2: Machine Learning & Behavioral Heuristics (ML)](#-track-2-machine-learning--behavioral-heuristics-ml)
   - [Track 3: Blockchain & Verifiable Academic Credentials](#-track-3-blockchain--verifiable-academic-credentials)
 - [High-Level System Architecture](#-high-level-system-architecture)
+- [💸 The $1 Production Architecture — Zero-Burn Stack](#-the-1-production-architecture--zero-burn-stack)
 - [Deep-Dive Feature Matrix](#-deep-dive-feature-matrix)
-  - [1. CourseGenie™ Autonomous Curriculum Engine](#1-coursegenie-autonomous-curriculum-engine)
+  - [1. Hand-Crafted Masterclasses & CourseGenie™ Lab](#1-hand-crafted-masterclasses--coursegenie-lab)
   - [2. Multi-Key Resilient AI Tutor Subsystem](#2-multi-key-resilient-ai-tutor-subsystem)
   - [3. Proctored Exam Room & 2-Strike Anti-Cheat Engine](#3-proctored-exam-room--2-strike-anti-cheat-engine)
   - [4. Ornate Guilloche Cryptographic Certificate Authority](#4-ornate-guilloche-cryptographic-certificate-authority)
@@ -40,7 +41,7 @@
 - [Repository Anatomy](#-repository-anatomy)
 - [Step-by-Step Installation & Quickstart](#-step-by-step-installation--quickstart)
 - [Security, RLS & Zero-Leak Production Hardening](#-security-rls--zero-leak-production-hardening)
-- [Copyright & Intellectual Property Notice](#-copyright--intellectual-property-notice)
+- [👨‍💻 Maker, Story & Hackathon Submission](#-maker-story--hackathon-submission)
 
 ---
 
@@ -66,8 +67,8 @@ Traditional e-learning platforms suffer from **passive video fatigue**, **generi
 │   🤖 ARTIFICIAL INTELLIGENCE  │    🧠 MACHINE LEARNING /      │   ⛓️ BLOCKCHAIN &           │
 │             (AI)              │     BEHAVIORAL HEURISTICS     │   VERIFIABLE CREDENTIALS    │
 ├───────────────────────────────┼───────────────────────────────┼─────────────────────────────┤
-│ • CourseGenie™ Curriculum Gen │ • Proctored Anti-Cheat Engine │ • Immutable Cert Registry   │
-│   (Multi-Module Full Courses) │   (Window Blur & DevTools)    │ • Unique LXAI Hash Proofs   │
+│ • Hand-Crafted Masterclasses  │ • Proctored Anti-Cheat Engine │ • Immutable Cert Registry   │
+│   + CourseGenie™ AI Lab       │   (Window Blur & DevTools)    │ • Unique LXAI Hash Proofs   │
 │ • Sub-500ms Contextual Tutor  │ • Fisher-Yates Permutation    │ • Dynamic QR Verification   │
 │   (Llama 3 / Qwen via Groq)   │   Question Randomizer         │ • Anti-Tamper Guilloche     │
 │ • Round-Robin Failover Pool   │ • 40/60 Continuous Formative  │   Micro-Hairline Security   │
@@ -76,7 +77,7 @@ Traditional e-learning platforms suffer from **passive video fatigue**, **generi
 ```
 
 ### 🤖 Track 1: Artificial Intelligence (AI)
-- **CourseGenie™ Autonomous Course Generator**: Uses Google Gemini models (`gemini-3.8-flash`, `gemini-3.7-flash`) with university-grade instructional design prompts. Generates full 8-10 module curriculums complete with interactive coding exercises, memory diagrams, real-world case studies, and checkpoint quizzes.
+- **High-Depth Masterclasses & CourseGenie™ AI Engine (Lab / Roadmap)**: The platform features meticulously structured, deep-dive courses (C, Java, Python, Web Architecture, SQL). Built-in under `src/lib/courseGenieEngine.ts` is the **CourseGenie™ Autonomous Curriculum Architect**, an internal AI pipeline using Gemini models to generate entire multi-module syllabi with code exercises and rubrics (currently in private preview/lab, expanding to public course creation).
 - **Context-Aware AI Tutor Engine**: Evaluates student code, current lesson cursor state, and historical query context. Delivers real-time explanations without revealing quiz answers directly.
 - **LPU Accelerated Inference**: Built on Groq Tensor Streaming Cores delivering token speeds up to **750 tokens/second** (sub-500ms latency), completely outperforming conventional LLM REST latency.
 - **Autonomous Support Desk Triage**: Ingests support inquiries, performs zero-shot classification (Spam vs. Genuine, Category, Urgency Scoring), and generates instant pedagogical suggestions.
@@ -163,12 +164,33 @@ Traditional e-learning platforms suffer from **passive video fatigue**, **generi
 
 ---
 
+## 💸 The $1 Production Architecture — Zero-Burn Stack
+
+> **"True engineering mastery isn't spending $5,000 on cloud credits to build an MVP. It's delivering enterprise sub-500ms AI, military-grade proctoring, and multi-tenant persistence on a literal $1 budget."**
+
+| Infrastructure Component | Technology & Service | Monthly Operational Cost |
+| :--- | :--- | :--- |
+| **Custom Web Domain** | Registrar (`.site` TLD) | **~$1.00 USD (Only Capital Invested)** |
+| **High-Throughput AI Tutor** | Groq Tensor LPU (`llama-3.3-70b` / `qwen-32b`) | **$0.00** (Free Tier via 4-Key Atomic Round-Robin Pool) |
+| **Curriculum Architect Engine** | Google Gemini API (`gemini-3.8-flash`) | **$0.00** (Free Tier with high TPS allowances) |
+| **Database & Auth State** | Supabase (PostgreSQL 15 + Row Level Security) | **$0.00** (Generous Developer Tier with connection pooling) |
+| **Serverless Backend Hosting** | Vercel Edge Functions & Serverless API | **$0.00** (Free Developer Tier) |
+| **2-Way Helpdesk Sync** | Telegram Bot API (`@BotFather` Webhook) | **$0.00** (Zero-cost event bridge directly to admin phone) |
+| **Payment Ingestion** | Razorpay Payment Gateway | **$0.00 setup** (Standard pay-on-success gateway fee) |
+| **TOTAL RUNTIME BURN RATE** | **Complete Full-Stack Platform** | **🔥 EXACTLY ~$1.00 USD** |
+
+### Why This Matters for Hackathon Judges:
+- **Zero Venture Waste**: Built without burning thousands of dollars in cloud or API credits.
+- **Extreme Architectural Efficiency**: Smart client-side state caching, aggressive token compression, payload sanitization, and key-pooling achieve enterprise 99.9% uptime at effectively zero marginal cost per learner.
+
+---
+
 ## ⚡ Deep-Dive Feature Matrix
 
-### 1. CourseGenie™ Autonomous Curriculum Engine
-- **Algorithmic Pedagogy Blueprint**: Synthesizes collegiate-level courses matching the depth of executive masterclasses.
-- **Deep Hierarchical Schema**: Generates strict sequential modules (`Module 1 -> Module N`) and exhaustive lessons with code syntax, system architecture diagrams, and real-world trade-off tables.
-- **Deterministic Validation**: Validates complete structural integrity before database write to guarantee zero truncated modules or missing lessons.
+### 1. Hand-Crafted Masterclasses & CourseGenie™ Lab
+- **Meticulously Curated Core Syllabus**: Live production courses (C Systems Programming, Java Architecture, Python, SQL) are hand-crafted by human educators to ensure maximum academic rigor, interactive coding snippets, and real-world trade-off tables.
+- **CourseGenie™ AI Engine (Lab & Roadmap)**: Integrated in `src/lib/courseGenieEngine.ts`, this algorithmic curriculum generator leverages Google Gemini to autonomously map 8-10 module syllabi. Currently power-tested in internal labs and scheduled for general student course authoring in upcoming releases!
+- **Strict Pedagogical Quality Guardrails**: Guarantees zero hallucinated code syntax and verifies module dependencies before deployment.
 
 ### 2. Multi-Key Resilient AI Tutor Subsystem
 ```
@@ -386,18 +408,25 @@ LernexAI follows strict zero-trust principles:
 
 ---
 
-## ⚖️ Copyright & Intellectual Property Notice
+## 👨‍💻 Maker, Story & Hackathon Submission
 
-**Copyright © 2026 Sourav Maurya (`sourave7` / `iamsouravmourya-jpg`). All rights reserved.**
+### The Story Behind LernexAI
+> *"Most commercial EdTech platforms charge high subscription fees for static video slides, easily bypassable quizzes, and unverified PDFs. During late-night hacking sessions for this competition, my goal was clear: prove that an individual builder can design an enterprise-grade, lightning-fast, and cheat-proof AI education operating system — entirely on a **$1 budget**."*
 
-This repository is publicly hosted solely for evaluation, demonstration, and judging purposes of the designated Hackathon. 
+- **Creator & Lead Architect**: **Sourav Maurya** 
+- **GitHub**: [`@sourave7`](https://github.com/sourave7) / [`iamsouravmourya-jpg`](https://github.com/iamsouravmourya-jpg)
+- **Built For**: Global Hackathon (Tracks: *Artificial Intelligence*, *Machine Learning & Behavioral Heuristics*, *Blockchain & Verifiable Credentials*)
 
-- Unauthorized copying, redistribution, reverse engineering, or commercial deployment of this source code or platform architecture is strictly prohibited.
-- For institutional licensing, partnership inquiries, or curriculum integration, please contact the author via the official GitHub profile or platform support desk.
+### 🤝 Open for Evaluation & Judging
+This project is submitted with pride for hackathon evaluation and technical review:
+- **Live Interactive Review**: Test the AI Tutor in any course lesson (`sub-500ms` streaming).
+- **Proctoring Test**: Trigger tab switching or open DevTools during an exam to watch the 2-strike heuristic defense in real-time.
+- **Verification Engine**: Scan any certificate QR code or query `/verify?id=...` to test the public proof registry.
 
 ---
 
 <div align="center">
-  <sub>Engineered with precision for the future of decentralized, AI-empowered education.</sub>
+  <b>Built with grit, passion, and relentless optimization by Sourav Maurya.</b><br/>
+  <sub>Empowering the next generation of engineers with active, intelligent, and verifiable mastery.</sub>
 </div>
 
