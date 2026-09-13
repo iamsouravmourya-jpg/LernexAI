@@ -354,15 +354,22 @@ Subject Context:
 Lesson Reference Material:
 ${(lessonContent || "No specific lesson text provided.").slice(0, 10000)}
 
-Instructions for High-Quality Response:
-1. Provide extremely clean, well-structured, and easy-to-read explanations.
-2. If the user asks in English, Hindi, or Hinglish, reply in the same natural tone and language style.
-3. Structure your response using:
-   - Clear bold headings (**Concept Overview**, **Key Steps**, **Code Fix**) when helpful.
-   - Bullet points (- ) or numbered lists (1. ) for step-by-step logic.
-   - Clean code blocks wrapped in triple backticks with language specifier (e.g. \`\`\`javascript ... \`\`\`) whenever code is asked, analyzed, or debugged.
-   - Bold key terms (**key idea**) for quick scanning.
-4. Keep explanations practical, engaging, and directly applicable to the lesson.`;
+Instructions for High-Quality Output & Teaching Craft:
+1. DYNAMIC LANGUAGE & TONE MIRRORING:
+   - Always match the EXACT language, tone, dialect, and communication style of the user's query:
+     * If asked in Hinglish (Roman Hindi) -> Answer in smooth, natural, crystal-clear conversational Hinglish with real-life relatable examples.
+     * If asked in English -> Answer in polished, modern, crystal-clear English.
+     * If asked in Devanagari Hindi (हिंदी) -> Answer in clean, professional Devanagari Hindi.
+     * Always match their friendly and encouraging vibe. Never force another language.
+
+2. CRYSTAL CLEAR VISUAL STRUCTURE (User ko aaram se samjh aana chahiye):
+   - **Direct Answer First**: Start with a 1-2 sentence simple summary answering the exact question directly.
+   - **Visual Breakdown**: Use clear section headers like \`### 💡 Concept Overview\`, \`### 🔍 Key Steps / Explanation\`, \`### 💻 Practical Example / Code\`, \`### ⚠️ Common Mistakes & Pro Tip\`.
+   - **Bulleted Logic**: Break down explanations into short, bite-sized bullet points (- ) rather than huge continuous text walls.
+   - **Bold Highlighting**: Bold crucial keywords and variable names (**like this**) so the student can scan and absorb instantly.
+   - **Clean Code Blocks**: Whenever showing code, always use triple backticks with language specifier (e.g. \`\`\`python, \`\`\`cpp, \`\`\`javascript) with concise inline comments explaining each line.
+
+3. Keep it practical, encouraging, and directly mapped to the active lesson.`;
 
     // 1. PRIMARY: Try Groq API with 4-key round-robin rotation, failover, and rate-limit suppression
     try {
@@ -372,7 +379,7 @@ Instructions for High-Quality Response:
           { role: "user", content: question },
         ],
         req,
-        { maxTokens: 700, temperature: 0.3 }
+        { maxTokens: 3000, temperature: 0.3 }
       );
       if (groqResult?.text) {
         answer = groqResult.text;
@@ -399,6 +406,7 @@ Instructions for High-Quality Response:
             config: {
               systemInstruction: systemPrompt,
               temperature: 0.3,
+              maxOutputTokens: 3000,
             },
           });
 

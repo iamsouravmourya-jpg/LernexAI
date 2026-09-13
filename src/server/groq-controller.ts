@@ -110,7 +110,7 @@ export async function executeGroqChatWithRotation(
           messages,
           model: modelName,
           temperature: options?.temperature ?? 0.3,
-          max_tokens: options?.maxTokens ?? 700,
+          max_tokens: options?.maxTokens ?? 3000,
         });
 
         const messageObj = response.choices?.[0]?.message as
@@ -205,7 +205,7 @@ Instructions:
     ];
 
     const result = await executeGroqChatWithRotation(messages, req, {
-      maxTokens: 700,
+      maxTokens: 3000,
       temperature: 0.3,
     });
 

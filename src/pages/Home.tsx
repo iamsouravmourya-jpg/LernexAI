@@ -26,10 +26,15 @@ import { PageEffects, ScrollProgress } from "@/components/anim";
 
 function AuthRedirectScreen({ message }: { message?: string }) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-ink-950 text-slate-900 dark:text-white">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-900">
       <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-2 border-cyan-500 border-t-transparent mx-auto mb-4" />
-        <p className="text-slate-600 dark:text-slate-400 text-sm font-medium">{message ?? "Checking your session..."}</p>
+        <div className="relative mx-auto mb-4 h-12 w-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-3 border-teal-200 border-t-teal-700" />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="h-3 w-3 rounded-full bg-teal-600 animate-ping" />
+          </div>
+        </div>
+        <p className="text-slate-600 text-xs font-bold tracking-tight">{message ?? "Connecting to LernexAI…"}</p>
       </div>
     </div>
   );

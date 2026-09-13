@@ -127,9 +127,20 @@ function FormattedMessage({ content }: { content: string }) {
               if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
                 const bulletText = trimmed.slice(2);
                 return (
-                  <div key={lineIdx} className="flex items-start gap-2 pl-1">
-                    <span className="text-teal-600 font-bold">•</span>
-                    <span>{parseInlineFormatting(bulletText)}</span>
+                  <div key={lineIdx} className="flex items-start gap-2 pl-1 py-0.5">
+                    <span className="text-teal-600 font-bold leading-tight mt-0.5">•</span>
+                    <span className="leading-relaxed">{parseInlineFormatting(bulletText)}</span>
+                  </div>
+                );
+              }
+
+              // Numbered lists 1. 2. etc.
+              const numMatch = trimmed.match(/^(\d+)\.\s+(.*)/);
+              if (numMatch) {
+                return (
+                  <div key={lineIdx} className="flex items-start gap-2 pl-1 py-0.5">
+                    <span className="text-teal-700 font-bold font-mono text-xs mt-0.5">{numMatch[1]}.</span>
+                    <span className="leading-relaxed">{parseInlineFormatting(numMatch[2])}</span>
                   </div>
                 );
               }
@@ -138,13 +149,23 @@ function FormattedMessage({ content }: { content: string }) {
               if (trimmed.startsWith("#")) {
                 const headingText = trimmed.replace(/^#+\s*/, "");
                 return (
-                  <h4 key={lineIdx} className="font-extrabold text-slate-900 pt-1 pb-0.5 text-xs sm:text-sm">
+                  <h4 key={lineIdx} className="font-extrabold text-slate-900 pt-2 pb-1 text-xs sm:text-sm tracking-tight border-b border-slate-100 mb-1">
                     {parseInlineFormatting(headingText)}
                   </h4>
                 );
               }
 
-              return <p key={lineIdx}>{parseInlineFormatting(line)}</p>;
+              // Blockquotes / Tips >
+              if (trimmed.startsWith("> ")) {
+                const quoteText = trimmed.slice(2);
+                return (
+                  <div key={lineIdx} className="my-1.5 pl-3 py-1 border-l-2 border-teal-500 bg-teal-50/50 rounded-r-lg text-slate-700 text-xs italic">
+                    {parseInlineFormatting(quoteText)}
+                  </div>
+                );
+              }
+
+              return <p key={lineIdx} className="leading-relaxed py-0.5">{parseInlineFormatting(line)}</p>;
             })}
           </div>
         );

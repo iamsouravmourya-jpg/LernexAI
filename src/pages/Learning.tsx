@@ -155,8 +155,13 @@ export default function Learning() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-900">
         <div className="text-center">
-          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-cyan-500/20 border-t-cyan-500" />
-          <p className="text-sm font-semibold text-slate-600">Initializing your interactive workspace…</p>
+          <div className="relative mx-auto mb-4 h-12 w-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-3 border-teal-200 border-t-teal-700" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="h-3 w-3 rounded-full bg-teal-600 animate-ping" />
+            </div>
+          </div>
+          <p className="text-xs font-bold text-slate-600">Initializing your interactive workspace…</p>
         </div>
       </div>
     );
@@ -165,11 +170,11 @@ export default function Learning() {
   if (!course || !activeItem) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 px-6 text-center text-slate-900">
-        <div className="max-w-md p-8 rounded-3xl bg-white border border-slate-200 shadow-xl">
+        <div className="max-w-md p-8 rounded-3xl bg-white border border-slate-200 shadow-sm">
           <div className="text-5xl">📚</div>
-          <h1 className="mt-4 text-2xl font-black text-slate-900">Course modules are being compiled</h1>
+          <h1 className="mt-4 text-xl font-black text-slate-900">Course modules are being compiled</h1>
           <p className="mt-2 text-xs text-slate-600 leading-relaxed">This course curriculum is currently undergoing final verification checks.</p>
-          <button onClick={() => setLocation("/browse")} className="mt-6 rounded-xl bg-gradient-to-r from-cyan-500 to-emerald-500 px-6 py-2.5 text-xs font-black text-slate-950 hover:scale-105 transition cursor-pointer shadow-md shadow-cyan-500/20">Explore Catalog</button>
+          <button onClick={() => setLocation("/browse")} className="mt-6 rounded-xl bg-teal-700 px-6 py-2.5 text-xs font-bold text-white hover:bg-teal-800 transition cursor-pointer shadow-sm">Explore Catalog</button>
         </div>
       </div>
     );

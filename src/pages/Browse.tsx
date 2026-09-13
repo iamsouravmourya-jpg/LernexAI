@@ -5,12 +5,14 @@ import {
   X
 } from "lucide-react";
 import { fetchCourses, Course } from "@/lib/course";
+import { TEST_COURSES } from "@/courses";
 import CourseCard from "@/components/CourseCard";
 import DashboardLayout from "@/components/DashboardLayout";
 
 export default function Browse() {
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Pre-fill instantly with verified courses so there is ZERO blank/loading flash
+  const [courses, setCourses] = useState<Course[]>(() => [...TEST_COURSES]);
+  const [loading, setLoading] = useState(false);
   
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState("");
@@ -35,15 +37,17 @@ export default function Browse() {
   }, []);
 
   useEffect(() => {
-    loadCourses();
+    let isCurrent = true;
+    async function syncCourses() {
+      // If we don't have courses yet or category changed, fetch seamlessly
+      const data = await fetchCourses(selectedCategory);
+      if (isCurrent && data && data.length > 0) {
+        setCourses(data);
+      }
+    }
+    syncCourses();
+    return () => { isCurrent = false; };
   }, [selectedCategory]);
-
-  const loadCourses = async () => {
-    setLoading(true);
-    const data = await fetchCourses(selectedCategory);
-    setCourses(data);
-    setLoading(false);
-  };
 
   const filteredAndSortedCourses = useMemo(() => {
     let result = courses.filter((course) => {

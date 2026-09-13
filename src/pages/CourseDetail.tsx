@@ -112,9 +112,14 @@ export default function CourseDetail() {
   if (loading) {
     return (
       <DashboardLayout title="Loading Track..." subtitle="Preparing live sandbox curriculum">
-        <div className="max-w-7xl mx-auto py-16 text-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-2 border-cyan-400 border-t-transparent mx-auto" />
-          <p className="text-slate-400 font-medium text-xs">Initializing course architecture...</p>
+        <div className="max-w-md mx-auto py-20 text-center space-y-4 bg-white rounded-3xl border border-slate-200 shadow-sm p-8 my-6">
+          <div className="relative mx-auto h-12 w-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-3 border-teal-200 border-t-teal-700" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="h-3 w-3 rounded-full bg-teal-600 animate-ping" />
+            </div>
+          </div>
+          <p className="text-slate-600 font-bold text-xs">Opening course workspace…</p>
         </div>
       </DashboardLayout>
     );
@@ -123,14 +128,14 @@ export default function CourseDetail() {
   if (!course) {
     return (
       <DashboardLayout title="Track Not Found" subtitle="The requested curriculum could not be located">
-        <div className="max-w-xl mx-auto my-12 p-8 bg-ink-900/80 rounded-3xl border border-white/10 text-center space-y-4 shadow-xl backdrop-blur-xl">
+        <div className="max-w-xl mx-auto my-12 p-8 bg-white rounded-3xl border border-slate-200 text-center space-y-4 shadow-sm">
           <div className="text-5xl">💻</div>
-          <h2 className="text-2xl font-black text-white">Track Not Found</h2>
-          <p className="text-slate-400 text-xs sm:text-sm">
+          <h2 className="text-2xl font-black text-slate-900">Track Not Found</h2>
+          <p className="text-slate-500 text-xs sm:text-sm">
             This course might have been archived or is temporarily undergoing curriculum upgrade.
           </p>
           <Link href="/browse">
-            <button className="px-6 py-3 rounded-2xl bg-gradient-to-r from-cyan-400 to-emerald-400 text-ink-950 font-black text-xs shadow-lg shadow-cyan-500/20 hover:scale-105 transition cursor-pointer">
+            <button className="px-6 py-3 rounded-2xl bg-teal-700 text-white font-bold text-xs shadow-md shadow-teal-700/20 hover:bg-teal-800 transition cursor-pointer">
               Explore Available Tracks →
             </button>
           </Link>

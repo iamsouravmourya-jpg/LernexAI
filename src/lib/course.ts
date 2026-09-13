@@ -165,6 +165,41 @@ function normalizeCourse(course: Record<string, unknown>): Course {
   } as Course;
 }
 
+// Custom priority rank to strictly enforce the user's requested display order:
+// 1. 1-Click Verification Course (Instant test flow)
+// 2. Python Programming Masterclass (Zero to Hero Hinglish)
+// 3. C Programming & Systems Architecture (Hinglish)
+// 4. Core Java & OOP Masterclass (Hinglish)
+// 5. Modern C++ & Systems (Hinglish)
+// 6. Enterprise SQL & Databases (Hinglish)
+// 7. HTML5 & CSS3 Responsive Web (Hinglish)
+// 8. Workflow test sprint at bottom
+const COURSE_PRIORITY_ORDER: Record<string, number> = {
+  "course-quick-test": 1,
+  "course-test-1-python": 2,
+  "test-1": 2,
+  "course-test-3-c": 3,
+  "test-3": 3,
+  "course-test-2-java": 4,
+  "test-2": 4,
+  "course-test-4-cpp": 5,
+  "test-4": 5,
+  "course-test-6-sql": 6,
+  "test-6": 6,
+  "course-test-5-html-css": 7,
+  "test-5": 7,
+  "35e38600-a5ef-4573-b295-81643c5b9007": 99,
+  "test-7": 99,
+};
+
+function sortCoursesByPriority(courses: Course[]): Course[] {
+  return [...courses].sort((a, b) => {
+    const rankA = COURSE_PRIORITY_ORDER[a.id] ?? (a.id.includes("quick") ? 1 : 50);
+    const rankB = COURSE_PRIORITY_ORDER[b.id] ?? (b.id.includes("quick") ? 1 : 50);
+    return rankA - rankB;
+  });
+}
+
 // Fetch all courses directly from database
 export async function fetchCourses(category?: string): Promise<Course[]> {
   // Purge any legacy cached courses from localStorage
@@ -176,14 +211,14 @@ export async function fetchCourses(category?: string): Promise<Course[]> {
     try {
       const { data, error } = await supabase
         .from('courses')
-        .select('*, modules(id)')
-        .order('created_at', { ascending: false });
+        .select('*, modules(id)');
 
       if (!error && data && data.length > 0) {
         const normalized = data.map(course => normalizeCourse(course));
-        return category && category !== 'All'
+        const filtered = category && category !== 'All'
           ? normalized.filter(c => c.category?.toLowerCase() === category.toLowerCase())
           : normalized;
+        return sortCoursesByPriority(filtered);
       }
     } catch (e) {
       console.warn('Supabase fetchCourses failed, falling back to verified courses:', e);
@@ -191,7 +226,7 @@ export async function fetchCourses(category?: string): Promise<Course[]> {
   }
 
   // Fallback to verified courses ONLY if Supabase is offline
-  const allDefaults = [...TEST_COURSES];
+  const allDefaults = sortCoursesByPriority([...TEST_COURSES]);
   if (category && category !== 'All') {
     return allDefaults.filter(c => c.category?.toLowerCase() === category.toLowerCase());
   }
@@ -200,12 +235,17 @@ export async function fetchCourses(category?: string): Promise<Course[]> {
 
 // Fetch single course with modules and lessons
 export async function fetchCourseById(courseId: string): Promise<Course | null> {
-  // 1. Check local custom generated courses first
+  // 1. Instant check: verified core courses load instantly without network latency
+  if (TEST_COURSES_RECORD[courseId]) {
+    return TEST_COURSES_RECORD[courseId];
+  }
+
+  // 2. Check local custom generated courses
   const customCourses = getCustomCourses();
   const foundCustom = customCourses.find((c) => c.id === courseId);
   if (foundCustom) return foundCustom;
 
-  // 2. If it's a generated course ID, try to fetch from Supabase user_courses first
+  // 3. If it's a generated course ID, try to fetch from Supabase user_courses first
   if (isSupabaseConfigured) {
     try {
       const { data: userCourse, error: userCourseError } = await supabase

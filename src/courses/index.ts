@@ -9,14 +9,14 @@ import test7 from './data/test-7.json';
 import type { Course } from '../lib/course';
 
 export const TEST_COURSES: Course[] = [
-  testQuick as unknown as Course,
-  test7 as unknown as Course,
-  test1 as unknown as Course,
-  test2 as unknown as Course,
-  test3 as unknown as Course,
-  test4 as unknown as Course,
-  test5 as unknown as Course,
-  test6 as unknown as Course,
+  testQuick as unknown as Course, // #1 1-Click Verification Course (Instant test flow)
+  test1 as unknown as Course,     // #2 Python Programming Masterclass (Hinglish - Zero to Hero)
+  test3 as unknown as Course,     // #3 Mastering C Programming & Systems Architecture (Hinglish)
+  test2 as unknown as Course,     // #4 Complete Core Java & OOP Masterclass (Hinglish)
+  test4 as unknown as Course,     // #5 Mastering Modern C++ & Object-Oriented Architecture (Hinglish)
+  test6 as unknown as Course,     // #6 Enterprise SQL & Database Architecture (Hinglish)
+  test5 as unknown as Course,     // #7 Modern Responsive Web Design: HTML5 & CSS3 (Hinglish)
+  test7 as unknown as Course,     // #8 Fast-Track Python & Web Sprint (Workflow Test - bottom)
 ];
 
 export const TEST_COURSES_RECORD: Record<string, Course> = {
@@ -46,12 +46,19 @@ export const TEST_COURSES_RECORD: Record<string, Course> = {
   "Test 6": test6 as unknown as Course,
   "Test 7": test7 as unknown as Course,
   "Python Programming Masterclass": test1 as unknown as Course,
+  "Python Programming Masterclass (Hinglish)": test1 as unknown as Course,
   "Complete Python Programming Masterclass": test1 as unknown as Course,
+  "Complete Python Programming Masterclass (Hinglish)": test1 as unknown as Course,
   "Complete Core Java & OOP Masterclass": test2 as unknown as Course,
+  "Complete Core Java & OOP Masterclass (Hinglish)": test2 as unknown as Course,
   "Mastering C Programming & Systems Architecture": test3 as unknown as Course,
+  "Mastering C Programming & Systems Architecture (Hinglish)": test3 as unknown as Course,
   "Mastering Modern C++ & Object-Oriented Architecture": test4 as unknown as Course,
+  "Mastering Modern C++ & Object-Oriented Architecture (Hinglish)": test4 as unknown as Course,
   "Modern Responsive Web Design: HTML5 & CSS3 Masterclass": test5 as unknown as Course,
+  "Modern Responsive Web Design: HTML5 & CSS3 Masterclass (Hinglish)": test5 as unknown as Course,
   "Mastering SQL & Relational Database Architecture": test6 as unknown as Course,
+  "Enterprise SQL & Database Architecture (Hinglish)": test6 as unknown as Course,
   "Fast-Track Python & Web Sprint": test7 as unknown as Course,
 };
 

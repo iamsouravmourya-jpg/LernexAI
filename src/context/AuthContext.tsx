@@ -164,7 +164,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (isMounted) {
           setLoading(false);
         }
-      }, 1500);
+      }, 600);
 
       try {
         if (isSupabaseConfigured) {

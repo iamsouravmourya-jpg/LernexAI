@@ -239,10 +239,10 @@ export default function Certificates() {
           <div className="grid lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-4">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="animate-pulse bg-slate-100 dark:bg-ink-900/50 rounded-3xl p-6 border border-slate-200 dark:border-white/10 h-36" />
+                <div key={i} className="animate-pulse bg-white rounded-3xl p-6 border border-slate-200 h-36" />
               ))}
             </div>
-            <div className="animate-pulse bg-slate-100 dark:bg-ink-900/50 rounded-3xl p-6 border border-slate-200 dark:border-white/10 h-96" />
+            <div className="animate-pulse bg-white rounded-3xl p-6 border border-slate-200 h-96" />
           </div>
         ) : error ? (
           <div className="rounded-3xl border border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 p-8 text-center text-red-700 dark:text-red-300">
