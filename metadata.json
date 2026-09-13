@@ -1,6 +1,6 @@
 {
   "name": "LernexAI",
-  "description": "Master practical skills with interactive AI, live in-browser sandboxes, instant doubt resolution, and QR-verified certificates.",
+  "description": "Learn C, Python, Java, and SQL with hands-on browser sandboxes, sub-500ms real-time AI tutor, anti-cheat proctored exams, and tamper-proof Guilloche QR-verified certificates.",
   "requestFramePermissions": [
     "accelerometer",
     "camera",
