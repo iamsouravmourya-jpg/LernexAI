@@ -491,7 +491,7 @@ export default function CertificateCheckoutPage() {
             <div class="meta-text">
                 <div><span>Certificate ID: </span><strong>${certId}</strong></div>
                 <div><span>Issue Date: </span><strong>${issuedDate}</strong></div>
-                <div><span>Online Registry: </span><strong style="color:#b45309;">lernex.ai/verify</strong></div>
+                <div><span>Online Registry: </span><strong style="color:#b45309;">${verifyUrl ? verifyUrl.replace(/^https?:\/\//, '') : 'lernexai.site/verify'}</strong></div>
                 <div style="font-size:8.5px; color:#64748b; font-family:monospace; margin-top:2px;">Status: AUTHENTICATED & RECORDED</div>
             </div>
 
@@ -971,6 +971,7 @@ export default function CertificateCheckoutPage() {
                 issuedDate={formatDate(new Date())}
                 qrCodeDataUrl={qrCodeDataUrl}
                 isDraft={!isPurchased}
+                verifyUrl={getAppUrl("/verify")}
               />
             </div>
 

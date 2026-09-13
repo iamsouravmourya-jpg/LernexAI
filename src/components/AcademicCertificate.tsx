@@ -17,6 +17,7 @@ export interface AcademicCertificateProps {
   issuedDate: string;
   qrCodeDataUrl?: string;
   isDraft?: boolean;
+  verifyUrl?: string;
 }
 
 export const AcademicCertificate = forwardRef<HTMLDivElement, AcademicCertificateProps>(
@@ -33,6 +34,7 @@ export const AcademicCertificate = forwardRef<HTMLDivElement, AcademicCertificat
       issuedDate,
       qrCodeDataUrl,
       isDraft = false,
+      verifyUrl,
     },
     ref
   ) => {
@@ -204,7 +206,9 @@ export const AcademicCertificate = forwardRef<HTMLDivElement, AcademicCertificat
             </div>
             <div>
               <span className="text-[#64748b] font-normal">Online Registry: </span>
-              <strong className="text-[#b45309] font-black">lernex.ai/verify</strong>
+              <strong className="text-[#b45309] font-black break-all">
+                {verifyUrl ? verifyUrl.replace(/^https?:\/\//, "") : "lernexai.site/verify"}
+              </strong>
             </div>
             <div className="text-[8px] sm:text-[9px] text-[#94a3b8] font-mono">
               Status: {isDraft ? "PREVIEW DRAFT" : "AUTHENTICATED & RECORDED"}
