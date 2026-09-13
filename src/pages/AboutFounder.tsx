@@ -83,7 +83,7 @@ export default function AboutFounder() {
                   <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-cyan-500 to-emerald-500 opacity-60 blur-md group-hover:opacity-100 transition duration-500" />
                   <div className="relative flex h-36 w-36 sm:h-44 sm:w-44 items-center justify-center rounded-3xl bg-slate-900 border-2 border-white shadow-2xl overflow-hidden">
                     <span className="text-5xl sm:text-6xl font-black bg-gradient-to-br from-cyan-400 to-emerald-400 bg-clip-text text-transparent">
-                      S
+                      SM
                     </span>
                   </div>
                 </div>
@@ -94,7 +94,7 @@ export default function AboutFounder() {
                     <span>Independent Developer & Entrepreneur</span>
                   </div>
                   <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-slate-900 mb-2">
-                    Sourav <GradientText text="Maurya" />
+                    Sourav <GradientText>Maurya</GradientText>
                   </h1>
                   <p className="text-cyan-600 text-base sm:text-lg font-semibold mb-4">
                     Founder & Chief Architect, LernexAI

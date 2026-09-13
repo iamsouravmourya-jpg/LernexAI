@@ -394,14 +394,16 @@ export function Parallax({
  */
 export function GradientText({
   children,
+  text,
   className = '',
 }: {
-  children: ReactNode;
+  children?: ReactNode;
+  text?: string;
   className?: string;
 }) {
   return (
     <span className={`bg-gradient-to-r from-cyan-400 to-emerald-400 bg-clip-text text-transparent ${className}`}>
-      {children}
+      {children ?? text}
     </span>
   );
 }
