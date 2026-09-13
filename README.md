@@ -283,8 +283,8 @@ Students can experiment with live code snippets right alongside the course curri
 | **Styling & Design System** | `Tailwind CSS 3.4` | Responsive, fluid utility styling |
 | **Micro-Interactions** | `Framer Motion` + `Canvas Confetti` | Fluid entrance transitions & celebratory feedback |
 | **Routing** | `Wouter` | Minimalist, high-performance client-side router |
-| **AI Inference Engine** | `Groq SDK` (`Llama-3.3-70b`, `Qwen-2.5-32b`) | Ultra low-latency (<500ms) tutor inference |
-| **Curriculum Architect** | `Google GenAI SDK` (`gemini-3.8-flash`) | Deep academic course generation |
+| **AI Inference Engine (Live)** | `Groq SDK` (`Llama-3.3-70b`, `Qwen-2.5-32b`) | Ultra low-latency (<500ms) active tutor inference |
+| **Curriculum Architect (Lab / Roadmap)** | `Google GenAI SDK` (`gemini-3.8-flash`) | Autonomous course generator & secondary fallback (Internal Lab) |
 | **Database & Auth** | `Supabase` (PostgreSQL 15) | Row-Level Security, JWT auth, course catalog |
 | **Payment Gateway** | `Razorpay Checkout` | Secure certificate claim & order verification |
 | **Server Runtime** | `Express 5` + `Vercel Serverless` | Dual compatibility local dev + cloud serverless |
